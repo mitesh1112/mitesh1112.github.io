@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -49,13 +48,13 @@
     <h1>Download Cyclothon 2024 Certificate</h1>
 
     <label for="pdfName">Enter participant 10 digit WhatsApp number:</label>
-    <input type="text" id="pdfName" placeholder="Enter PDF name">
+    <input type="text" id="pdfName" placeholder="Enter 10 digit WhatsApp number">
     <button onclick="downloadPDF()">Download PDF</button>
 
     <script>
         function downloadPDF() {
             var pdfName = document.getElementById('pdfName').value;
-            var pdfUrl = 'cert/' + pdfName + '.pdf';
+            var pdfUrl = 'certs/' + pdfName + '.pdf';
 
             // Check if the PDF file exists
             fetch(pdfUrl)
