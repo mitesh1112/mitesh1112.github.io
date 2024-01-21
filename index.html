@@ -2,20 +2,38 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Download PDF</title>
+    <title>PDF Downloader</title>
 </head>
 <body>
-    <form id="pdfForm">
-        <label for="fileName">Enter PDF File Name:</label>
-        <input type="text" id="fileName" name="fileName" required>
-        <button type="button" onclick="downloadPDF()">Download PDF</button>
-    </form>
+    <h1>PDF Downloader</h1>
+
+    <label for="pdfName">Enter participant's WhatsApp number:</label>
+    <input type="text" id="pdfName" placeholder="Enter PDF name">
+    <button onclick="downloadPDF()">Download PDF</button>
 
     <script>
         function downloadPDF() {
-            var fileName = document.getElementById('fileName').value;
-            window.location.href = 'path/to/your/pdf/files/' + fileName + '.pdf';
+            var pdfName = document.getElementById('pdfName').value;
+            var pdfUrl = 'certs/' + pdfName + '.pdf';
+
+            // Check if the PDF file exists
+            fetch(pdfUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        alert('PDF not found!');
+                    } else {
+                        // If the PDF exists, initiate download
+                        var a = document.createElement('a');
+                        a.href = pdfUrl;
+                        a.download = pdfName + '.pdf';
+                        a.click();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking PDF existence:', error);
+                });
         }
     </script>
 </body>
