@@ -1,7 +1,22 @@
-<html>
-  <title>Trying github pages !!!</title>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download PDF</title>
+</head>
+<body>
+    <form id="pdfForm">
+        <label for="fileName">Enter PDF File Name:</label>
+        <input type="text" id="fileName" name="fileName" required>
+        <button type="button" onclick="downloadPDF()">Download PDF</button>
+    </form>
 
-  <body>
-    <h1>Hello github pages !!!</h1>
-  </body>
+    <script>
+        function downloadPDF() {
+            var fileName = document.getElementById('fileName').value;
+            window.location.href = 'path/to/your/pdf/files/' + fileName + '.pdf';
+        }
+    </script>
+</body>
 </html>
