@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NNC Saputara Trek 2026 Certificate</title>
+
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        label {
+            display: block;
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        input {
+            width: 300px;
+            padding: 10px;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Download NNC Saputara Trek 2026 Certificate</h1>
+
+    <label for="pdfName">Enter participant 10 digit WhatsApp number:</label>
+    <input type="text" id="pdfName" placeholder="Enter 10 digit WhatsApp number">
+    <button onclick="downloadPDF()">Download PDF</button>
+
+    <script>
+        function downloadPDF() {
+            var pdfName = document.getElementById('pdfName').value;
+            var pdfUrl = 'nvnsaputara2026/' + pdfName + '.pdf';
+
+            // Check if the PDF file exists
+            fetch(pdfUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        alert('WhatsApp mobile number not found!');
+                    } else {
+                        // If the PDF exists, initiate download
+                        var a = document.createElement('a');
+                        a.href = pdfUrl;
+                        a.download = pdfName + '.pdf';
+                        a.click();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking PDF existence:', error);
+                });
+        }
+    </script>
+</body>
+</html>
