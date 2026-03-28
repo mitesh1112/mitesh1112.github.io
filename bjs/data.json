@@ -1,0 +1,1234 @@
+[
+  {
+    "code": "A1",
+    "name": "Tushar Makwana",
+    "std": "7",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9428986934",
+    "mobile2": ""
+  },
+  {
+    "code": "A2",
+    "name": "Naimish Sanjay Parmar",
+    "std": "7",
+    "school": "",
+    "mobile1": "",
+    "mobile2": ""
+  },
+  {
+    "code": "A3",
+    "name": "Manoj Naresh Bik",
+    "std": "7",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": "8628036552"
+  },
+  {
+    "code": "A4",
+    "name": "Pratipal Yogesh Chauhan",
+    "std": "7",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": ""
+  },
+  {
+    "code": "A5",
+    "name": "Pushkar Bansi Meghval",
+    "std": "7",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": ""
+  },
+  {
+    "code": "A6",
+    "name": "Hetin Nitesh Sonagara",
+    "std": "6",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": ""
+  },
+  {
+    "code": "A7",
+    "name": "Yadvi Kevalia",
+    "std": "",
+    "school": "",
+    "mobile1": "9558510863",
+    "mobile2": ""
+  },
+  {
+    "code": "A8",
+    "name": "Harsh Pravin Sonagara",
+    "std": "8",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": ""
+  },
+  {
+    "code": "A9",
+    "name": "Raj Pramesh Varma",
+    "std": "7",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": "8128761707"
+  },
+  {
+    "code": "A10",
+    "name": "Shyamal Jayveer Sunar",
+    "std": "7",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": "9410387617"
+  },
+  {
+    "code": "A11",
+    "name": "Dharmendra Aniruddh Jethwa",
+    "std": "5",
+    "school": "",
+    "mobile1": "8141891101",
+    "mobile2": ""
+  },
+  {
+    "code": "A12",
+    "name": "Bharti Satyam Ramnivas",
+    "std": "5",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": ""
+  },
+  {
+    "code": "A13",
+    "name": "Prince S. Nakum",
+    "std": "6",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": "9724505794"
+  },
+  {
+    "code": "A14",
+    "name": "Guarav Rohit Meshwaniya",
+    "std": "7",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": ""
+  },
+  {
+    "code": "A15",
+    "name": "Meet Lalji Nakum",
+    "std": "7",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": "9099568050"
+  },
+  {
+    "code": "A16",
+    "name": "Ridham Amit Tarpara",
+    "std": "6",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": ""
+  },
+  {
+    "code": "A17",
+    "name": "Bhautik Nitin Chauhan",
+    "std": "5",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": "7572830838"
+  },
+  {
+    "code": "A18",
+    "name": "Vishnu Nitin Chauhan",
+    "std": "7",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": "7572830838"
+  },
+  {
+    "code": "A19",
+    "name": "Pruthviraj Sinh Jadeja",
+    "std": "5",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": ""
+  },
+  {
+    "code": "A20",
+    "name": "Ayush Singh",
+    "std": "8",
+    "school": "",
+    "mobile1": "",
+    "mobile2": ""
+  },
+  {
+    "code": "A21",
+    "name": "Sanjay Jagdidh Dudharejiya",
+    "std": "7",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": ""
+  },
+  {
+    "code": "A22",
+    "name": "Ronak Rohit Maghodiya",
+    "std": "7",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": ""
+  },
+  {
+    "code": "A23",
+    "name": "Radhika Prashant Jeeya",
+    "std": "6",
+    "school": "Kokilaben Dhirubhai Ambani School",
+    "mobile1": "8200336742",
+    "mobile2": "9327379438"
+  },
+  {
+    "code": "A24",
+    "name": "Jiya Narendra Gondalia",
+    "std": "7",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9099014546",
+    "mobile2": ""
+  },
+  {
+    "code": "A25",
+    "name": "Khushali Raju Singrakhiya",
+    "std": "5",
+    "school": "",
+    "mobile1": "9714775093",
+    "mobile2": "9624106971"
+  },
+  {
+    "code": "A26",
+    "name": "Vedanshi Suresh Jadhav",
+    "std": "6",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "7435870178",
+    "mobile2": "8980001986"
+  },
+  {
+    "code": "A27",
+    "name": "Tamanna Riyza Shekh",
+    "std": "7",
+    "school": "Rozi Prathmik Shala",
+    "mobile1": "9924790080",
+    "mobile2": ""
+  },
+  {
+    "code": "A28",
+    "name": "Ketan Vaghela",
+    "std": "8",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": "9904790304"
+  },
+  {
+    "code": "A29",
+    "name": "Vansh Rambhai Bheda",
+    "std": "7",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": "8320539766"
+  },
+  {
+    "code": "A30",
+    "name": "Ayush Satish Maghudiya",
+    "std": "8",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": "9410061451"
+  },
+  {
+    "code": "A31",
+    "name": "Jatin Punit Dudharejiya",
+    "std": "7",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": ""
+  },
+  {
+    "code": "A32",
+    "name": "Ridham Panchasara",
+    "std": "8",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": ""
+  },
+  {
+    "code": "A33",
+    "name": "Mayank Nikhil Surea",
+    "std": "7",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": ""
+  },
+  {
+    "code": "A34",
+    "name": "Vivek Ravji Nakum",
+    "std": "7",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": ""
+  },
+  {
+    "code": "A35",
+    "name": "Rajal Fulabhai Charan",
+    "std": "7",
+    "school": "Shikshan Mandir - Vipulaben",
+    "mobile1": "9428286574",
+    "mobile2": "9274414465"
+  },
+  {
+    "code": "A36",
+    "name": "Nagai Ramaiyabhai Charan",
+    "std": "7",
+    "school": "Shikshan Mandir - Vipulaben",
+    "mobile1": "9428286574",
+    "mobile2": "9316624868"
+  },
+  {
+    "code": "A37",
+    "name": "Jeti Gangasagar Dube",
+    "std": "8",
+    "school": "Shikshan Mandir - Vipulaben",
+    "mobile1": "9428286574",
+    "mobile2": "8155013104"
+  },
+  {
+    "code": "A38",
+    "name": "Raghi G Dubey",
+    "std": "8",
+    "school": "Shikshan Mandir - Vipulaben",
+    "mobile1": "9428286574",
+    "mobile2": ""
+  },
+  {
+    "code": "A39",
+    "name": "Niranjana Vipul Khetiya",
+    "std": "6",
+    "school": "Padana Kanyashala",
+    "mobile1": "9601451247",
+    "mobile2": ""
+  },
+  {
+    "code": "A40",
+    "name": "Jisha M Timbadiya",
+    "std": "7",
+    "school": "K. V. 3",
+    "mobile1": "9601261550",
+    "mobile2": "7043771772"
+  },
+  {
+    "code": "A41",
+    "name": "Jay Jamanbhai Kachhatiya",
+    "std": "7",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": ""
+  },
+  {
+    "code": "A42",
+    "name": "Ansh Anil Dangar",
+    "std": "7",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": ""
+  },
+  {
+    "code": "A43",
+    "name": "Ruyam Nirmal Dave",
+    "std": "7",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": ""
+  },
+  {
+    "code": "A44",
+    "name": "Sahadevsinh A Jadeja",
+    "std": "5",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": ""
+  },
+  {
+    "code": "A45",
+    "name": "Hetav Sarania",
+    "std": "5",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "960321321",
+    "mobile2": ""
+  },
+  {
+    "code": "A46",
+    "name": "Kavya Ravikant Chitroda",
+    "std": "",
+    "school": "G. D. Goenka Public School",
+    "mobile1": "9925210012",
+    "mobile2": ""
+  },
+  {
+    "code": "A47",
+    "name": "Mahi Hitesh Shanishvara",
+    "std": "6",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9727036649",
+    "mobile2": ""
+  },
+  {
+    "code": "A48",
+    "name": "Vimarsh N Mankad",
+    "std": "8",
+    "school": "Bhavans AK Doshi Vidyalaya",
+    "mobile1": "8160656006",
+    "mobile2": ""
+  },
+  {
+    "code": "A49",
+    "name": "Vrushti Mankad",
+    "std": "8",
+    "school": "Bhavans AK Doshi Vidyalaya",
+    "mobile1": "9879415665",
+    "mobile2": ""
+  },
+  {
+    "code": "A50",
+    "name": "Dhruva Akbari",
+    "std": "6",
+    "school": "Oshwal Eng. Acadamy",
+    "mobile1": "8469382876",
+    "mobile2": "9924531836"
+  },
+  {
+    "code": "A51",
+    "name": "Smita M Mehta",
+    "std": "6",
+    "school": "Oshwal Eng. Acadamy",
+    "mobile1": "9377168618",
+    "mobile2": "9081018626"
+  },
+  {
+    "code": "A52",
+    "name": "Devam Raiyani",
+    "std": "6",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "8849488359",
+    "mobile2": ""
+  },
+  {
+    "code": "A53",
+    "name": "Prashant Rajeshbhai",
+    "std": "5",
+    "school": "Oshwal English Acadamy",
+    "mobile1": "9737244324",
+    "mobile2": ""
+  },
+  {
+    "code": "A54",
+    "name": "Ujjwal Kumar",
+    "std": "6",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9818825085",
+    "mobile2": ""
+  },
+  {
+    "code": "A55",
+    "name": "Vatsal Kapadia",
+    "std": "7",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "7016102358",
+    "mobile2": ""
+  },
+  {
+    "code": "A56",
+    "name": "Vrushavi Mendpara",
+    "std": "6",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9624380089",
+    "mobile2": "9824933303"
+  },
+  {
+    "code": "A57",
+    "name": "Shreya Raja Shiyar",
+    "std": "5",
+    "school": "Bandidhar Vidyalaya",
+    "mobile1": "9228117506",
+    "mobile2": ""
+  },
+  {
+    "code": "A58",
+    "name": "Dishana Dhengal",
+    "std": "6",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9409492183",
+    "mobile2": ""
+  },
+  {
+    "code": "A59",
+    "name": "Ritvika Dhengal",
+    "std": "7",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9409492183",
+    "mobile2": ""
+  },
+  {
+    "code": "A60",
+    "name": "Aditi Singh",
+    "std": "5",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "8238015423",
+    "mobile2": ""
+  },
+  {
+    "code": "A61",
+    "name": "Yashvi V Raval",
+    "std": "8",
+    "school": "G. D. Goenka Public School",
+    "mobile1": "9825230929",
+    "mobile2": ""
+  },
+  {
+    "code": "A62",
+    "name": "Khyatisingh",
+    "std": "8",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "8238015423",
+    "mobile2": ""
+  },
+  {
+    "code": "A63",
+    "name": "Shreshtha M Bariya",
+    "std": "6",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9726883600",
+    "mobile2": ""
+  },
+  {
+    "code": "A64",
+    "name": "Heman K Mehta",
+    "std": "7",
+    "school": "G. D. Goenka Public School",
+    "mobile1": "9925123964",
+    "mobile2": ""
+  },
+  {
+    "code": "A65",
+    "name": "Upangshu Deb Roy",
+    "std": "7",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "7574801982",
+    "mobile2": ""
+  },
+  {
+    "code": "A66",
+    "name": "Jiya Gandhi",
+    "std": "5",
+    "school": "St. Anns High School",
+    "mobile1": "9998436384",
+    "mobile2": ""
+  },
+  {
+    "code": "A67",
+    "name": "Dev J Gandhi",
+    "std": "7",
+    "school": "St. Xavier's High School",
+    "mobile1": "9428315259",
+    "mobile2": ""
+  },
+  {
+    "code": "A68",
+    "name": "Siddhangana Maharana",
+    "std": "7",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "7043100709",
+    "mobile2": ""
+  },
+  {
+    "code": "A69",
+    "name": "Nayan Vijaybhai",
+    "std": "8",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9687225616",
+    "mobile2": ""
+  },
+  {
+    "code": "A70",
+    "name": "Krishna Sachin Dange",
+    "std": "5",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "8320898362",
+    "mobile2": "7016636983"
+  },
+  {
+    "code": "A71",
+    "name": "Maheshwariba A. Jadeja",
+    "std": "8",
+    "school": "Shikshan Mandir - Vipulaben",
+    "mobile1": "9428286574",
+    "mobile2": ""
+  },
+  {
+    "code": "A72",
+    "name": "Banshari Hamir Bambhava",
+    "std": "8",
+    "school": "Shikshan Mandir - Vipulaben",
+    "mobile1": "9428286574",
+    "mobile2": ""
+  },
+  {
+    "code": "A73",
+    "name": "Yagnarajsinh M Jethwa",
+    "std": "5",
+    "school": "Shikshan Mandir - Vipulaben",
+    "mobile1": "9428286574",
+    "mobile2": ""
+  },
+  {
+    "code": "A74",
+    "name": "Hardik Dhiraj Dabhi",
+    "std": "7",
+    "school": "Shikshan Mandir - Vipulaben",
+    "mobile1": "9428286574",
+    "mobile2": ""
+  },
+  {
+    "code": "A75",
+    "name": "Janki Merubhai Tariya",
+    "std": "6",
+    "school": "Shikshan Mandir - Vipulaben",
+    "mobile1": "9428286574",
+    "mobile2": ""
+  },
+  {
+    "code": "A76",
+    "name": "Yash Nitin Kapdi",
+    "std": "7",
+    "school": "Shikshan Mandir - Vipulaben",
+    "mobile1": "9428286574",
+    "mobile2": ""
+  },
+  {
+    "code": "A77",
+    "name": "Vir Ravi Parmar",
+    "std": "6",
+    "school": "Shikshan Mandir - Vipulaben",
+    "mobile1": "9428286574",
+    "mobile2": ""
+  },
+  {
+    "code": "A78",
+    "name": "Jhanvi Amit Parmar",
+    "std": "7",
+    "school": "Shikshan Mandir",
+    "mobile1": "9428286574",
+    "mobile2": ""
+  },
+  {
+    "code": "A79",
+    "name": "Hetal Paresh Parmar",
+    "std": "7",
+    "school": "Shikshan Mandir - Vipulaben",
+    "mobile1": "9428286574",
+    "mobile2": ""
+  },
+  {
+    "code": "A80",
+    "name": "Poonam Parmar",
+    "std": "",
+    "school": "Shikshan Mandir - Vipulaben",
+    "mobile1": "9428286574",
+    "mobile2": ""
+  },
+  {
+    "code": "A81",
+    "name": "Rami Purkait",
+    "std": "5",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9339554405",
+    "mobile2": ""
+  },
+  {
+    "code": "A82",
+    "name": "Yamini Lalji Jepar",
+    "std": "6",
+    "school": "Rozi Prathmik Shala",
+    "mobile1": "9924405140",
+    "mobile2": ""
+  },
+  {
+    "code": "A83",
+    "name": "Adhya Bohra",
+    "std": "6",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9785642257",
+    "mobile2": ""
+  },
+  {
+    "code": "A84",
+    "name": "Atharva",
+    "std": "5",
+    "school": "",
+    "mobile1": "8430333366",
+    "mobile2": ""
+  },
+  {
+    "code": "A85",
+    "name": "Trisha F Shah",
+    "std": "5",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9898360812",
+    "mobile2": ""
+  },
+  {
+    "code": "A87",
+    "name": "Dishwa Vijay Godhani",
+    "std": "5",
+    "school": "",
+    "mobile1": "9925093894",
+    "mobile2": ""
+  },
+  {
+    "code": "A88",
+    "name": "Nandan Mahendra Sindhav",
+    "std": "7",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9276702850",
+    "mobile2": "9228191849"
+  },
+  {
+    "code": "A89",
+    "name": "Rayan Banerjee",
+    "std": "5",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "8238059089",
+    "mobile2": "8238000936"
+  },
+  {
+    "code": "A90",
+    "name": "Dharmik Vaghora",
+    "std": "6",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9737258850",
+    "mobile2": ""
+  },
+  {
+    "code": "A91",
+    "name": "Heli Kanzaria",
+    "std": "11",
+    "school": "Podar Internation School",
+    "mobile1": "7016417363",
+    "mobile2": ""
+  },
+  {
+    "code": "A92",
+    "name": "Dhyana Anil Kanani",
+    "std": "5",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9428167723",
+    "mobile2": "9099067172"
+  },
+  {
+    "code": "A93",
+    "name": "Kaushal A Thanki",
+    "std": "6",
+    "school": "St. Francis School",
+    "mobile1": "9033505557",
+    "mobile2": "7069015381"
+  },
+  {
+    "code": "A94",
+    "name": "Hansika Rakesh Chahal",
+    "std": "5",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "6352814174",
+    "mobile2": "8307746186"
+  },
+  {
+    "code": "A95",
+    "name": "Aneri Dholaria",
+    "std": "6",
+    "school": "Delhi Public Shool",
+    "mobile1": "9824123345",
+    "mobile2": ""
+  },
+  {
+    "code": "A96",
+    "name": "Vyana Hiren Nesadiya",
+    "std": "6",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9712269845",
+    "mobile2": ""
+  },
+  {
+    "code": "A97",
+    "name": "Somya Sutariya",
+    "std": "7",
+    "school": "Bhavans AK Doshi Vidyalaya",
+    "mobile1": "9408297073",
+    "mobile2": ""
+  },
+  {
+    "code": "A98",
+    "name": "Anjali Arjun Kharadi",
+    "std": "7",
+    "school": "Shikshan Mandir - Vipulaben",
+    "mobile1": "9428286574",
+    "mobile2": "7990907906"
+  },
+  {
+    "code": "A99",
+    "name": "Aditya Hiren Vaghadia",
+    "std": "5",
+    "school": "K. V. 1 -Airforce Jamnagar",
+    "mobile1": "9428252161",
+    "mobile2": ""
+  },
+  {
+    "code": "A100",
+    "name": "Azava Rizvanbhai Bloch",
+    "std": "6",
+    "school": "Rozi Prathmik Shala",
+    "mobile1": "9033916668",
+    "mobile2": ""
+  },
+  {
+    "code": "A101",
+    "name": "Gracy Ashwin Parmer",
+    "std": "8",
+    "school": "Kasturba Stri Vikas Gruh",
+    "mobile1": "7984348875",
+    "mobile2": ""
+  },
+  {
+    "code": "A102",
+    "name": "Jasoda Khengar Varsakiya",
+    "std": "8",
+    "school": "Kasturba Stri Vikas Gruh",
+    "mobile1": "7984348875",
+    "mobile2": ""
+  },
+  {
+    "code": "A103",
+    "name": "Divay Gopal Parmar",
+    "std": "7",
+    "school": "Kasturba Stri Vikas Gruh",
+    "mobile1": "7984348875",
+    "mobile2": ""
+  },
+  {
+    "code": "A104",
+    "name": "Banshi Bhukhubhai Hathiya",
+    "std": "7",
+    "school": "Kasturba Stri Vikas Gruh",
+    "mobile1": "7984348875",
+    "mobile2": ""
+  },
+  {
+    "code": "A105",
+    "name": "Mosam Patel",
+    "std": "7",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9265793809",
+    "mobile2": "9099067529"
+  },
+  {
+    "code": "A106",
+    "name": "Kavita Chaudhary",
+    "std": "",
+    "school": "K.V.1- Airforce Station, Jamnagar",
+    "mobile1": "9460532185",
+    "mobile2": ""
+  },
+  {
+    "code": "A107",
+    "name": "Geetesh",
+    "std": "",
+    "school": "K.V.1- Airforce Station, Jamnagar",
+    "mobile1": "9460532185",
+    "mobile2": ""
+  },
+  {
+    "code": "A108",
+    "name": "Dhimahi Shrenik Sheth",
+    "std": "5",
+    "school": "",
+    "mobile1": "9974395454",
+    "mobile2": ""
+  },
+  {
+    "code": "A109",
+    "name": "Darshan Paresh Dharevadiya",
+    "std": "6",
+    "school": "Om Prathmik Shala",
+    "mobile1": "7990994471",
+    "mobile2": ""
+  },
+  {
+    "code": "A110",
+    "name": "Arohi Paras Ghataliya",
+    "std": "6",
+    "school": "Delhi Public School",
+    "mobile1": "9376763463",
+    "mobile2": ""
+  },
+  {
+    "code": "A111",
+    "name": "Kritika Jogel",
+    "std": "5",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9327149257",
+    "mobile2": ""
+  },
+  {
+    "code": "A112",
+    "name": "Kavya Nishit Visavadia",
+    "std": "",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9426209050",
+    "mobile2": ""
+  },
+  {
+    "code": "A113",
+    "name": "Yash Jitendra Bhadra",
+    "std": "6",
+    "school": "",
+    "mobile1": "9327617757",
+    "mobile2": ""
+  },
+  {
+    "code": "A114",
+    "name": "Yash Jitendra Bhadra",
+    "std": "6",
+    "school": "",
+    "mobile1": "9327617757",
+    "mobile2": ""
+  },
+  {
+    "code": "A115",
+    "name": "Aditi Bharat Hurabada",
+    "std": "5",
+    "school": "Pranami Vidya Mandir",
+    "mobile1": "",
+    "mobile2": ""
+  },
+  {
+    "code": "A116",
+    "name": "Shubh Himat Mau",
+    "std": "8",
+    "school": "Pranami Vidya Mandir",
+    "mobile1": "9313751807",
+    "mobile2": ""
+  },
+  {
+    "code": "A117",
+    "name": "Het H. Chandra",
+    "std": "8",
+    "school": "Oshwal English Acadamy",
+    "mobile1": "9265244207",
+    "mobile2": ""
+  },
+  {
+    "code": "A118",
+    "name": "Yesha M Bhimani",
+    "std": "6",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9427944694",
+    "mobile2": ""
+  },
+  {
+    "code": "A119",
+    "name": "Riya Nirav Shah",
+    "std": "8",
+    "school": "St. Anns High School",
+    "mobile1": "9979953363",
+    "mobile2": ""
+  },
+  {
+    "code": "A120",
+    "name": "Mishti Kotecha",
+    "std": "7",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9624636675",
+    "mobile2": ""
+  },
+  {
+    "code": "A121",
+    "name": "Pragati Santani",
+    "std": "7",
+    "school": "Delhi Public School",
+    "mobile1": "9327900038",
+    "mobile2": ""
+  },
+  {
+    "code": "A122",
+    "name": "Manya V Patel",
+    "std": "8",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9687624493",
+    "mobile2": ""
+  },
+  {
+    "code": "A123",
+    "name": "Jiya Kalavadiya",
+    "std": "8",
+    "school": "St. Xavier's High School",
+    "mobile1": "9427878272",
+    "mobile2": ""
+  },
+  {
+    "code": "A124",
+    "name": "Hiten Tekchandani",
+    "std": "8",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9408451514",
+    "mobile2": ""
+  },
+  {
+    "code": "A125",
+    "name": "Hetansh Bhavin Shah",
+    "std": "6",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "8238029759",
+    "mobile2": ""
+  },
+  {
+    "code": "B1",
+    "name": "Krish Jayesh Vadher",
+    "std": "7",
+    "school": "School No. 37",
+    "mobile1": "7874914092",
+    "mobile2": ""
+  },
+  {
+    "code": "B2",
+    "name": "Pooja Bharat Jethwa",
+    "std": "9",
+    "school": "G.S. Mehta Muni. Kanya Vidyalaya",
+    "mobile1": "9898083913",
+    "mobile2": ""
+  },
+  {
+    "code": "B3",
+    "name": "Nehal Jenti Pankhaniya",
+    "std": "12",
+    "school": "G. S. Mehta Kanya Vidyalaya",
+    "mobile1": "9624555634",
+    "mobile2": ""
+  },
+  {
+    "code": "B4",
+    "name": "Rani G Duby",
+    "std": "12",
+    "school": "Shikshan Mandir - Vipulaben",
+    "mobile1": "9428286574",
+    "mobile2": ""
+  },
+  {
+    "code": "B5",
+    "name": "Toshali Ghosh",
+    "std": "10",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "8866750345",
+    "mobile2": ""
+  },
+  {
+    "code": "B6",
+    "name": "Bhavika",
+    "std": "10",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "8288897114",
+    "mobile2": ""
+  },
+  {
+    "code": "B7",
+    "name": "Darshi Rajabhai Shiyal",
+    "std": "11",
+    "school": "Purohit Science School",
+    "mobile1": "9228117506",
+    "mobile2": ""
+  },
+  {
+    "code": "B8",
+    "name": "Jayadrita Ghosh",
+    "std": "9",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "8939462738",
+    "mobile2": ""
+  },
+  {
+    "code": "B9",
+    "name": "Mudra Chudasama",
+    "std": "10",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9898323200",
+    "mobile2": "9998854539"
+  },
+  {
+    "code": "B10",
+    "name": "Neha Amit Parmar",
+    "std": "9",
+    "school": "Shikshan Mandir",
+    "mobile1": "9428286574",
+    "mobile2": ""
+  },
+  {
+    "code": "B11",
+    "name": "Sejal Ravindra Chudasama",
+    "std": "11",
+    "school": "G.S. Mehta Muni. Kanya Vidyalaya",
+    "mobile1": "9687229934",
+    "mobile2": ""
+  },
+  {
+    "code": "B12",
+    "name": "Shital Pravin Chauhan",
+    "std": "11",
+    "school": "G.S. Mehta Muni. Kanya Vidyalaya",
+    "mobile1": "9773067660",
+    "mobile2": ""
+  },
+  {
+    "code": "B13",
+    "name": "Rahi Purkait",
+    "std": "12",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9339554405",
+    "mobile2": ""
+  },
+  {
+    "code": "B14",
+    "name": "Dhwani Paras Mehta",
+    "std": "",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9825061140",
+    "mobile2": "9687879799"
+  },
+  {
+    "code": "B15",
+    "name": "Rahi R Gudhka",
+    "std": "",
+    "school": "",
+    "mobile1": "9328115242",
+    "mobile2": ""
+  },
+  {
+    "code": "B16",
+    "name": "Vidya Dholaria",
+    "std": "12",
+    "school": "",
+    "mobile1": "9824210505",
+    "mobile2": ""
+  },
+  {
+    "code": "B17",
+    "name": "Tulsi Ramesh Dattani",
+    "std": "11",
+    "school": "Kasturba Stri Vikas Gruh",
+    "mobile1": "7984348875",
+    "mobile2": ""
+  },
+  {
+    "code": "B18",
+    "name": "Anjali Gopal Parmar",
+    "std": "9",
+    "school": "Kasturba Stri Vikas Gruh",
+    "mobile1": "7984348875",
+    "mobile2": ""
+  },
+  {
+    "code": "B19",
+    "name": "Sheetal J Hariyani",
+    "std": "11",
+    "school": "Kasturba Stri Vikas Gruh",
+    "mobile1": "7984348875",
+    "mobile2": ""
+  },
+  {
+    "code": "B20",
+    "name": "Pragati D Makavana",
+    "std": "11",
+    "school": "Kasturba Stri Vikas Gruh",
+    "mobile1": "7984348875",
+    "mobile2": ""
+  },
+  {
+    "code": "B21",
+    "name": "Aarti M Vadhera",
+    "std": "12",
+    "school": "Kasturba Stri Vikas Gruh",
+    "mobile1": "7984348875",
+    "mobile2": ""
+  },
+  {
+    "code": "B22",
+    "name": "Madhu Paresh Chauhan",
+    "std": "12",
+    "school": "Kasturba Stri Vikas Gruh",
+    "mobile1": "7984348875",
+    "mobile2": ""
+  },
+  {
+    "code": "B23",
+    "name": "Lakshita",
+    "std": "10",
+    "school": "K.V.1- Airforce Station, Jamnagar",
+    "mobile1": "9060532185",
+    "mobile2": ""
+  },
+  {
+    "code": "B24",
+    "name": "Jaydeep D. Sanchaniya",
+    "std": "12",
+    "school": "",
+    "mobile1": "9054198107",
+    "mobile2": ""
+  },
+  {
+    "code": "B25",
+    "name": "Viral Vinodbhai Katarmal",
+    "std": "9",
+    "school": "",
+    "mobile1": "9588923469",
+    "mobile2": "9662275411"
+  },
+  {
+    "code": "B26",
+    "name": "Drashti Anil Vara",
+    "std": "12",
+    "school": "Moti Matli High School",
+    "mobile1": "9712051049",
+    "mobile2": ""
+  },
+  {
+    "code": "B27",
+    "name": "Mahek Haresh Gajara",
+    "std": "9",
+    "school": "Odhavdeep Vidyalaya",
+    "mobile1": "9313751807",
+    "mobile2": ""
+  },
+  {
+    "code": "B28",
+    "name": "Urvashi Haresh Gajara",
+    "std": "11",
+    "school": "Odhavdeep Vidyalaya",
+    "mobile1": "9313751807",
+    "mobile2": ""
+  },
+  {
+    "code": "B29",
+    "name": "Khanjan N Bavisi",
+    "std": "9",
+    "school": "Nand Vidyaniketan School",
+    "mobile1": "9998889391",
+    "mobile2": ""
+  },
+  {
+    "code": "B30",
+    "name": "Chetanya Rohilla",
+    "std": "9",
+    "school": "K. V. 3",
+    "mobile1": "7898674292",
+    "mobile2": "8510999509"
+  }
+]

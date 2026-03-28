@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Lookup & Download</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+            z-index: 100;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .autocomplete-list.active {
+            display: block;
+        }
+
+        .autocomplete-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .autocomplete-item:hover,
+        .autocomplete-item.selected {
+            background-color: #f5f5f5;
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .autocomplete-item strong {
+            color: #667eea;
+        }
+
+        .result-section {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .result-section.show {
+            display: block;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .result-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .result-label {
+            font-weight: 600;
+            color: #555;
+            min-width: 100px;
+        }
+
+        .result-value {
+            color: #333;
+            text-align: right;
+            flex: 1;
+        }
+
+        .download-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .download-btn:active {
+            transform: translateY(0);
+        }
+
+        .download-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 8px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .no-results {
+            text-align: center;
+            color: #999;
+            padding: 15px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 25px;
+            }
+
+            h1 {
+                font-size: 24px;
+                margin-bottom: 25px;
+            }
+
+            .result-row {
+                flex-direction: column;
+            }
+
+            .result-value {
+                text-align: left;
+                margin-top: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎓 Certificate Lookup</h1>
+
+        <div class="form-group">
+            <label for="nameInput">Search by Name</label>
+            <div class="input-wrapper">
+                <input 
+                    type="text" 
+                    id="nameInput" 
+                    placeholder="Type name or press down arrow for suggestions..."
+                    autocomplete="off"
+                >
+                <ul class="autocomplete-list" id="autocompleteList"></ul>
+            </div>
+            <div class="error-message" id="errorMessage"></div>
+        </div>
+
+        <div class="result-section" id="resultSection">
+            <div class="result-row">
+                <span class="result-label">Certificate Code:</span>
+                <span class="result-value" id="codeDisplay">-</span>
+            </div>
+            <div class="result-row">
+                <span class="result-label">Name:</span>
+                <span class="result-value" id="nameDisplay">-</span>
+            </div>
+            <div class="result-row">
+                <span class="result-label">Class:</span>
+                <span class="result-value" id="stdDisplay">-</span>
+            </div>
+            <div class="result-row">
+                <span class="result-label">School:</span>
+                <span class="result-value" id="schoolDisplay">-</span>
+            </div>
+
+            <button class="download-btn" id="downloadBtn" onclick="downloadCertificate()">
+                📥 Download Certificate
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let allData = [];
+        let selectedRecord = null;
+
+        // Embedded data - embedded directly in the page for GitHub Pages compatibility
+        const embeddedData = [{"code": "A1", "name": "Tushar Makwana", "std": "7", "school": "Nand Vidyaniketan School", "mobile1": "9428986934", "mobile2": ""}, {"code": "A2", "name": "Naimish Sanjay Parmar", "std": "7", "school": "", "mobile1": "", "mobile2": ""}, {"code": "A3", "name": "Manoj Naresh Bik", "std": "7", "school": "School No. 37", "mobile1": "7874914092", "mobile2": "8628036552"}, {"code": "A4", "name": "Pratipal Yogesh Chauhan", "std": "7", "school": "School No. 37", "mobile1": "7874914092", "mobile2": ""}, {"code": "A5", "name": "Pushkar Bansi Meghval", "std": "7", "school": "School No. 37", "mobile1": "7874914092", "mobile2": ""}, {"code": "A6", "name": "Hetin Nitesh Sonagara", "std": "6", "school": "School No. 37", "mobile1": "7874914092", "mobile2": ""}, {"code": "A7", "name": "Yadvi Kevalia", "std": "", "school": "", "mobile1": "9558510863", "mobile2": ""}, {"code": "A8", "name": "Harsh Pravin Sonagara", "std": "8", "school": "School No. 37", "mobile1": "7874914092", "mobile2": ""}, {"code": "A9", "name": "Raj Pramesh Varma", "std": "7", "school": "School No. 37", "mobile1": "7874914092", "mobile2": "8128761707"}, {"code": "A10", "name": "Shyamal Jayveer Sunar", "std": "7", "school": "School No. 37", "mobile1": "7874914092", "mobile2": "9410387617"}, {"code": "A11", "name": "Dharmendra Aniruddh Jethwa", "std": "5", "school": "", "mobile1": "8141891101", "mobile2": ""}, {"code": "A12", "name": "Bharti Satyam Ramnivas", "std": "5", "school": "School No. 37", "mobile1": "7874914092", "mobile2": ""}, {"code": "A13", "name": "Prince S. Nakum", "std": "6", "school": "School No. 37", "mobile1": "7874914092", "mobile2": "9724505794"}, {"code": "A14", "name": "Guarav Rohit Meshwaniya", "std": "7", "school": "School No. 37", "mobile1": "7874914092", "mobile2": ""}, {"code": "A15", "name": "Meet Lalji Nakum", "std": "7", "school": "School No. 37", "mobile1": "7874914092", "mobile2": "9099568050"}, {"code": "A16", "name": "Ridham Amit Tarpara", "std": "6", "school": "School No. 37", "mobile1": "7874914092", "mobile2": ""}, {"code": "A17", "name": "Bhautik Nitin Chauhan", "std": "5", "school": "School No. 37", "mobile1": "7874914092", "mobile2": "7572830838"}, {"code": "A18", "name": "Vishnu Nitin Chauhan", "std": "7", "school": "School No. 37", "mobile1": "7874914092", "mobile2": "7572830838"}, {"code": "A19", "name": "Pruthviraj Sinh Jadeja", "std": "5", "school": "School No. 37", "mobile1": "7874914092", "mobile2": ""}, {"code": "A20", "name": "Ayush Singh ", "std": "8", "school": "", "mobile1": "", "mobile2": ""}, {"code": "A21", "name": "Sanjay Jagdidh Dudharejiya", "std": "7", "school": "School No. 37", "mobile1": "7874914092", "mobile2": ""}, {"code": "A22", "name": "Ronak Rohit Maghodiya", "std": "7", "school": "School No. 37", "mobile1": "7874914092", "mobile2": ""}, {"code": "A23", "name": "Radhika Prashant Jeeya", "std": "6", "school": "Kokilaben Dhirubhai Ambani School", "mobile1": "8200336742", "mobile2": "9327379438"}, {"code": "A24", "name": "Jiya Narendra Gondalia", "std": "7", "school": "Nand Vidyaniketan School", "mobile1": "9099014546", "mobile2": ""}, {"code": "A25", "name": "Khushali Raju Singrakhiya", "std": "5", "school": "", "mobile1": "9714775093", "mobile2": "9624106971"}, {"code": "A26", "name": "Vedanshi Suresh Jadhav", "std": "6", "school": "Nand Vidyaniketan School", "mobile1": "7435870178", "mobile2": "8980001986"}, {"code": "A27", "name": "Tamanna Riyza Shekh", "std": "7", "school": "Rozi Prathmik Shala", "mobile1": "9924790080", "mobile2": ""}, {"code": "A28", "name": "Ketan Vaghela", "std": "8", "school": "School No. 37", "mobile1": "7874914092", "mobile2": "9904790304"}, {"code": "A29", "name": "Vansh Rambhai Bheda", "std": "7", "school": "School No. 37", "mobile1": "7874914092", "mobile2": "8320539766"}, {"code": "A30", "name": "Ayush Satish Maghudiya", "std": "8", "school": "School No. 37", "mobile1": "7874914092", "mobile2": "9410061451"}, {"code": "A31", "name": "Jatin Punit Dudharejiya", "std": "7", "school": "School No. 37", "mobile1": "7874914092", "mobile2": ""}, {"code": "A32", "name": "Ridham Panchasara", "std": "8", "school": "School No. 37", "mobile1": "7874914092", "mobile2": ""}, {"code": "A33", "name": "Mayank Nikhil Surea", "std": "7", "school": "School No. 37", "mobile1": "7874914092", "mobile2": ""}, {"code": "A34", "name": "Vivek Ravji Nakum", "std": "7", "school": "School No. 37", "mobile1": "7874914092", "mobile2": ""}, {"code": "A35", "name": "Rajal Fulabhai Charan", "std": "7", "school": "Shikshan Mandir - Vipulaben", "mobile1": "9428286574", "mobile2": "9274414465"}, {"code": "A36", "name": "Nagai Ramaiyabhai Charan", "std": "7", "school": "Shikshan Mandir - Vipulaben", "mobile1": "9428286574", "mobile2": "9316624868"}, {"code": "A37", "name": "Jeti Gangasagar Dube", "std": "8", "school": "Shikshan Mandir - Vipulaben", "mobile1": "9428286574", "mobile2": "8155013104"}, {"code": "A38", "name": "Raghi G Dubey", "std": "8", "school": "Shikshan Mandir - Vipulaben", "mobile1": "9428286574", "mobile2": ""}, {"code": "A39", "name": "Niranjana Vipul Khetiya", "std": "6", "school": "Padana Kanyashala", "mobile1": "9601451247", "mobile2": ""}, {"code": "A40", "name": "Jisha M Timbadiya", "std": "7", "school": "K. V. 3", "mobile1": "9601261550", "mobile2": "7043771772"}, {"code": "A41", "name": "Jay Jamanbhai Kachhatiya", "std": "7", "school": "School No. 37", "mobile1": "7874914092", "mobile2": ""}, {"code": "A42", "name": "Ansh Anil Dangar", "std": "7", "school": "School No. 37", "mobile1": "7874914092", "mobile2": ""}, {"code": "A43", "name": "Ruyam Nirmal Dave", "std": "7", "school": "School No. 37", "mobile1": "7874914092", "mobile2": ""}, {"code": "A44", "name": "Sahadevsinh A Jadeja", "std": "5", "school": "School No. 37", "mobile1": "7874914092", "mobile2": ""}, {"code": "A45", "name": "Hetav Sarania", "std": "5", "school": "Nand Vidyaniketan School", "mobile1": "960321321", "mobile2": ""}, {"code": "A46", "name": "Kavya Ravikant Chitroda", "std": "", "school": "G. D. Goenka Public School", "mobile1": "9925210012", "mobile2": ""}, {"code": "A47", "name": "Mahi Hitesh Shanishvara", "std": "6", "school": "Nand Vidyaniketan School", "mobile1": "9727036649", "mobile2": ""}, {"code": "A48", "name": "Vimarsh N Mankad", "std": "8", "school": "Bhavans AK Doshi Vidyalaya", "mobile1": "8160656006", "mobile2": ""}, {"code": "A49", "name": "Vrushti Mankad", "std": "8", "school": "Bhavans AK Doshi Vidyalaya", "mobile1": "9879415665", "mobile2": ""}, {"code": "A50", "name": "Dhruva Akbari", "std": "6", "school": "Oshwal Eng. Acadamy", "mobile1": "8469382876", "mobile2": "9924531836"}, {"code": "A51", "name": "Smita M Mehta", "std": "6", "school": "Oshwal Eng. Acadamy", "mobile1": "9377168618", "mobile2": "9081018626"}, {"code": "A52", "name": "Devam Raiyani", "std": "6", "school": "Nand Vidyaniketan School", "mobile1": "8849488359", "mobile2": ""}, {"code": "A53", "name": "Prashant Rajeshbhai", "std": "5", "school": "Oshwal English Acadamy", "mobile1": "9737244324", "mobile2": ""}, {"code": "A54", "name": "Ujjwal Kumar", "std": "6", "school": "Nand Vidyaniketan School", "mobile1": "9818825085", "mobile2": ""}, {"code": "A55", "name": "Vatsal Kapadia", "std": "7", "school": "Nand Vidyaniketan School", "mobile1": "7016102358", "mobile2": ""}, {"code": "A56", "name": "Vrushavi Mendpara", "std": "6", "school": "Nand Vidyaniketan School", "mobile1": "9624380089", "mobile2": "9824933303"}, {"code": "A57", "name": "Shreya Raja Shiyar", "std": "5", "school": "Bandidhar Vidyalaya", "mobile1": "9228117506", "mobile2": ""}, {"code": "A58", "name": "Dishana Dhengal", "std": "6", "school": "Nand Vidyaniketan School", "mobile1": "9409492183", "mobile2": ""}, {"code": "A59", "name": "Ritvika Dhengal", "std": "7", "school": "Nand Vidyaniketan School", "mobile1": "9409492183", "mobile2": ""}, {"code": "A60", "name": "Aditi Singh", "std": "5", "school": "Nand Vidyaniketan School", "mobile1": "8238015423", "mobile2": ""}, {"code": "A61", "name": "Yashvi V Raval", "std": "8", "school": "G. D. Goenka Public School", "mobile1": "9825230929", "mobile2": ""}, {"code": "A62", "name": "Khyatisingh", "std": "8", "school": "Nand Vidyaniketan School", "mobile1": "8238015423", "mobile2": ""}, {"code": "A63", "name": "Shreshtha M Bariya", "std": "6", "school": "Nand Vidyaniketan School", "mobile1": "9726883600", "mobile2": ""}, {"code": "A64", "name": "Heman K Mehta", "std": "7", "school": "G. D. Goenka Public School", "mobile1": "9925123964", "mobile2": ""}, {"code": "A65", "name": "Upangshu Deb Roy", "std": "7", "school": "Nand Vidyaniketan School", "mobile1": "7574801982", "mobile2": ""}, {"code": "A66", "name": "Jiya Gandhi", "std": "5", "school": "St. Anns High School", "mobile1": "9998436384", "mobile2": ""}, {"code": "A67", "name": "Dev J Gandhi", "std": "7", "school": "St. Xavier's High School", "mobile1": "9428315259", "mobile2": ""}, {"code": "A68", "name": "Siddhangana Maharana", "std": "7", "school": "Nand Vidyaniketan School", "mobile1": "7043100709", "mobile2": ""}, {"code": "A69", "name": "Nayan Vijaybhai", "std": "8", "school": "Nand Vidyaniketan School", "mobile1": "9687225616", "mobile2": ""}, {"code": "A70", "name": "Krishna Sachin Dange", "std": "5", "school": "Nand Vidyaniketan School", "mobile1": "8320898362", "mobile2": "7016636983"}, {"code": "A71", "name": "Maheshwariba A. Jadeja", "std": "8", "school": "Shikshan Mandir - Vipulaben", "mobile1": "9428286574", "mobile2": ""}, {"code": "A72", "name": "Banshari Hamir Bambhava", "std": "8", "school": "Shikshan Mandir - Vipulaben", "mobile1": "9428286574", "mobile2": ""}, {"code": "A73", "name": "Yagnarajsinh M Jethwa", "std": "5", "school": "Shikshan Mandir - Vipulaben", "mobile1": "9428286574", "mobile2": ""}, {"code": "A74", "name": "Hardik Dhiraj Dabhi", "std": "7", "school": "Shikshan Mandir - Vipulaben", "mobile1": "9428286574", "mobile2": ""}, {"code": "A75", "name": "Janki Merubhai Tariya", "std": "6", "school": "Shikshan Mandir - Vipulaben", "mobile1": "9428286574", "mobile2": ""}, {"code": "A76", "name": "Yash Nitin Kapdi", "std": "7", "school": "Shikshan Mandir - Vipulaben", "mobile1": "9428286574", "mobile2": ""}, {"code": "A77", "name": "Vir Ravi Parmar", "std": "6", "school": "Shikshan Mandir - Vipulaben", "mobile1": "9428286574", "mobile2": ""}, {"code": "A78", "name": "Jhanvi Amit Parmar", "std": "7", "school": "Shikshan Mandir", "mobile1": "9428286574", "mobile2": ""}, {"code": "A79", "name": "Hetal Paresh Parmar", "std": "7", "school": "Shikshan Mandir - Vipulaben", "mobile1": "9428286574", "mobile2": ""}, {"code": "A80", "name": "Poonam Parmar", "std": "", "school": "Shikshan Mandir - Vipulaben", "mobile1": "9428286574", "mobile2": ""}, {"code": "A81", "name": "Rami Purkait", "std": "5", "school": "Nand Vidyaniketan School", "mobile1": "9339554405", "mobile2": ""}, {"code": "A82", "name": "Yamini Lalji Jepar", "std": "6", "school": "Rozi Prathmik Shala", "mobile1": "9924405140", "mobile2": ""}, {"code": "A83", "name": "Adhya Bohra", "std": "6", "school": "Nand Vidyaniketan School", "mobile1": "9785642257", "mobile2": ""}, {"code": "A84", "name": "Atharva", "std": "5", "school": "", "mobile1": "8430333366", "mobile2": ""}, {"code": "A85", "name": "Trisha F Shah", "std": "5", "school": "Nand Vidyaniketan School", "mobile1": "9898360812", "mobile2": ""}, {"code": "A87", "name": "Dishwa Vijay Godhani", "std": "5", "school": "", "mobile1": "9925093894", "mobile2": ""}, {"code": "A88", "name": "Nandan Mahendra Sindhav", "std": "7", "school": "Nand Vidyaniketan School", "mobile1": "9276702850", "mobile2": "9228191849"}, {"code": "A89", "name": "Rayan Banerjee", "std": "5", "school": "Nand Vidyaniketan School", "mobile1": "8238059089", "mobile2": "8238000936"}, {"code": "A90", "name": "Dharmik Vaghora", "std": "6", "school": "Nand Vidyaniketan School", "mobile1": "9737258850", "mobile2": ""}, {"code": "A91", "name": "Heli Kanzaria", "std": "11", "school": "Podar Internation School", "mobile1": "7016417363", "mobile2": ""}, {"code": "A92", "name": "Dhyana Anil Kanani", "std": "5", "school": "Nand Vidyaniketan School", "mobile1": "9428167723", "mobile2": "9099067172"}, {"code": "A93", "name": "Kaushal A Thanki", "std": "6", "school": "St. Francis School", "mobile1": "9033505557", "mobile2": "7069015381"}, {"code": "A94", "name": "Hansika Rakesh Chahal", "std": "5", "school": "Nand Vidyaniketan School", "mobile1": "6352814174", "mobile2": "8307746186"}, {"code": "A95", "name": "Aneri Dholaria", "std": "6", "school": "Delhi Public Shool", "mobile1": "9824123345", "mobile2": ""}, {"code": "A96", "name": "Vyana Hiren Nesadiya", "std": "6", "school": "Nand Vidyaniketan School", "mobile1": "9712269845", "mobile2": ""}, {"code": "A97", "name": "Somya Sutariya", "std": "7", "school": "Bhavans AK Doshi Vidyalaya", "mobile1": "9408297073", "mobile2": ""}, {"code": "A98", "name": "Anjali Arjun Kharadi", "std": "7", "school": "Shikshan Mandir - Vipulaben", "mobile1": "9428286574", "mobile2": "7990907906"}, {"code": "A99", "name": "Aditya Hiren Vaghadia", "std": "5", "school": "K. V. 1 -Airforce Jamnagar", "mobile1": "9428252161", "mobile2": ""}, {"code": "A100", "name": "Azava Rizvanbhai Bloch", "std": "6", "school": "Rozi Prathmik Shala", "mobile1": "9033916668", "mobile2": ""}, {"code": "A101", "name": "Gracy Ashwin Parmer", "std": "8", "school": "Kasturba Stri Vikas Gruh", "mobile1": "7984348875", "mobile2": ""}, {"code": "A102", "name": "Jasoda Khengar Varsakiya", "std": "8", "school": "Kasturba Stri Vikas Gruh", "mobile1": "7984348875", "mobile2": ""}, {"code": "A103", "name": "Divay Gopal Parmar", "std": "7", "school": "Kasturba Stri Vikas Gruh", "mobile1": "7984348875", "mobile2": ""}, {"code": "A104", "name": "Banshi Bhukhubhai Hathiya", "std": "7", "school": "Kasturba Stri Vikas Gruh", "mobile1": "7984348875", "mobile2": ""}, {"code": "A105", "name": "Mosam Patel", "std": "7", "school": "Nand Vidyaniketan School", "mobile1": "9265793809", "mobile2": "9099067529"}, {"code": "A106", "name": "Kavita Chaudhary", "std": "", "school": "K.V.1- Airforce Station, Jamnagar", "mobile1": "9460532185", "mobile2": ""}, {"code": "A107", "name": "Geetesh ", "std": "", "school": "K.V.1- Airforce Station, Jamnagar", "mobile1": "9460532185", "mobile2": ""}, {"code": "A108", "name": "Dhimahi Shrenik Sheth", "std": "5", "school": "", "mobile1": "9974395454", "mobile2": ""}, {"code": "A109", "name": "Darshan Paresh Dharevadiya", "std": "6", "school": "Om Prathmik Shala", "mobile1": "7990994471", "mobile2": ""}, {"code": "A110", "name": "Arohi Paras Ghataliya", "std": "6", "school": "Delhi Public School", "mobile1": "9376763463", "mobile2": ""}, {"code": "A111", "name": "Kritika Jogel", "std": "5", "school": "Nand Vidyaniketan School", "mobile1": "9327149257", "mobile2": ""}, {"code": "A112", "name": "Kavya Nishit Visavadia", "std": "", "school": "Nand Vidyaniketan School", "mobile1": "9426209050", "mobile2": ""}, {"code": "A113", "name": "Yash Jitendra Bhadra", "std": "6", "school": "", "mobile1": "9327617757", "mobile2": ""}, {"code": "A114", "name": "Yash Jitendra Bhadra", "std": "6", "school": "", "mobile1": "9327617757", "mobile2": ""}, {"code": "A115", "name": "Aditi Bharat Hurabada", "std": "5", "school": "Pranami Vidya Mandir", "mobile1": "", "mobile2": ""}, {"code": "A116", "name": "Shubh Himat Mau", "std": "8", "school": "Pranami Vidya Mandir", "mobile1": "9313751807", "mobile2": ""}, {"code": "A117", "name": "Het H. Chandra", "std": "8", "school": "Oshwal English Acadamy", "mobile1": "9265244207", "mobile2": ""}, {"code": "A118", "name": "Yesha M Bhimani", "std": "6", "school": "Nand Vidyaniketan School", "mobile1": "9427944694", "mobile2": ""}, {"code": "A119", "name": "Riya Nirav Shah", "std": "8", "school": "St. Anns High School", "mobile1": "9979953363", "mobile2": ""}, {"code": "A120", "name": "Mishti Kotecha", "std": "7", "school": "Nand Vidyaniketan School", "mobile1": "9624636675", "mobile2": ""}, {"code": "A121", "name": "Pragati Santani", "std": "7", "school": "Delhi Public School", "mobile1": "9327900038", "mobile2": ""}, {"code": "A122", "name": "Manya V Patel", "std": "8", "school": "Nand Vidyaniketan School", "mobile1": "9687624493", "mobile2": ""}, {"code": "A123", "name": "Jiya Kalavadiya", "std": "8", "school": "St. Xavier's High School", "mobile1": "9427878272", "mobile2": ""}, {"code": "A124", "name": "Hiten Tekchandani", "std": "8", "school": "Nand Vidyaniketan School", "mobile1": "9408451514", "mobile2": ""}, {"code": "A125", "name": "Hetansh Bhavin Shah", "std": "6", "school": "Nand Vidyaniketan School", "mobile1": "8238029759", "mobile2": ""}, {"code": "B1", "name": "Krish Jayesh Vadher", "std": "7", "school": "School No. 37", "mobile1": "7874914092", "mobile2": ""}, {"code": "B2", "name": "Pooja Bharat Jethwa", "std": "9", "school": "G.S. Mehta Muni. Kanya Vidyalaya", "mobile1": "9898083913", "mobile2": ""}, {"code": "B3", "name": "Nehal Jenti Pankhaniya", "std": "12", "school": "G. S. Mehta Kanya Vidyalaya", "mobile1": "9624555634", "mobile2": ""}, {"code": "B4", "name": "Rani G Duby", "std": "12", "school": "Shikshan Mandir - Vipulaben", "mobile1": "9428286574", "mobile2": ""}, {"code": "B5", "name": "Toshali Ghosh", "std": "10", "school": "Nand Vidyaniketan School", "mobile1": "8866750345", "mobile2": ""}, {"code": "B6", "name": "Bhavika", "std": "10", "school": "Nand Vidyaniketan School", "mobile1": "8288897114", "mobile2": ""}, {"code": "B7", "name": "Darshi Rajabhai Shiyal", "std": "11", "school": "Purohit Science School", "mobile1": "9228117506", "mobile2": ""}, {"code": "B8", "name": "Jayadrita Ghosh", "std": "9", "school": "Nand Vidyaniketan School", "mobile1": "8939462738", "mobile2": ""}, {"code": "B9", "name": "Mudra Chudasama", "std": "10", "school": "Nand Vidyaniketan School", "mobile1": "9898323200", "mobile2": "9998854539"}, {"code": "B10", "name": "Neha Amit Parmar", "std": "9", "school": "Shikshan Mandir ", "mobile1": "9428286574", "mobile2": ""}, {"code": "B11", "name": "Sejal Ravindra Chudasama", "std": "11", "school": "G.S. Mehta Muni. Kanya Vidyalaya", "mobile1": "9687229934", "mobile2": ""}, {"code": "B12", "name": "Shital Pravin Chauhan", "std": "11", "school": "G.S. Mehta Muni. Kanya Vidyalaya", "mobile1": "9773067660", "mobile2": ""}, {"code": "B13", "name": "Rahi Purkait", "std": "12", "school": "Nand Vidyaniketan School", "mobile1": "9339554405", "mobile2": ""}, {"code": "B14", "name": "Dhwani Paras Mehta", "std": "", "school": "Nand Vidyaniketan School", "mobile1": "9825061140", "mobile2": "9687879799"}, {"code": "B15", "name": "Rahi R Gudhka", "std": "", "school": "", "mobile1": "9328115242", "mobile2": ""}, {"code": "B16", "name": "Vidya Dholaria", "std": "12", "school": "", "mobile1": "9824210505", "mobile2": ""}, {"code": "B17", "name": "Tulsi Ramesh Dattani", "std": "11", "school": "Kasturba Stri Vikas Gruh", "mobile1": "7984348875", "mobile2": ""}, {"code": "B18", "name": "Anjali Gopal Parmar", "std": "9", "school": "Kasturba Stri Vikas Gruh", "mobile1": "7984348875", "mobile2": ""}, {"code": "B19", "name": "Sheetal J Hariyani", "std": "11", "school": "Kasturba Stri Vikas Gruh", "mobile1": "7984348875", "mobile2": ""}, {"code": "B20", "name": "Pragati D Makavana", "std": "11", "school": "Kasturba Stri Vikas Gruh", "mobile1": "7984348875", "mobile2": ""}, {"code": "B21", "name": "Aarti M Vadhera", "std": "12", "school": "Kasturba Stri Vikas Gruh", "mobile1": "7984348875", "mobile2": ""}, {"code": "B22", "name": "Madhu Paresh Chauhan", "std": "12", "school": "Kasturba Stri Vikas Gruh", "mobile1": "7984348875", "mobile2": ""}, {"code": "B23", "name": "Lakshita ", "std": "10", "school": "K.V.1- Airforce Station, Jamnagar", "mobile1": "9060532185", "mobile2": ""}, {"code": "B24", "name": "Jaydeep D. Sanchaniya", "std": "12", "school": "", "mobile1": "9054198107", "mobile2": ""}, {"code": "B25", "name": "Viral Vinodbhai Katarmal", "std": "9", "school": "", "mobile1": "9588923469", "mobile2": "9662275411"}, {"code": "B26", "name": "Drashti Anil Vara", "std": "12", "school": "Moti Matli High School", "mobile1": "9712051049", "mobile2": ""}, {"code": "B27", "name": "Mahek Haresh Gajara", "std": "9", "school": "Odhavdeep Vidyalaya", "mobile1": "9313751807", "mobile2": ""}, {"code": "B28", "name": "Urvashi Haresh Gajara", "std": "11", "school": "Odhavdeep Vidyalaya", "mobile1": "9313751807", "mobile2": ""}, {"code": "B29", "name": "Khanjan N Bavisi", "std": "9", "school": "Nand Vidyaniketan School", "mobile1": "9998889391", "mobile2": ""}, {"code": "B30", "name": "Chetanya Rohilla", "std": "9", "school": "K. V. 3", "mobile1": "7898674292", "mobile2": "8510999509"}];
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            allData = embeddedData;
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            const input = document.getElementById('nameInput');
+            const autocompleteList = document.getElementById('autocompleteList');
+
+            input.addEventListener('input', (e) => {
+                const value = e.target.value.trim().toLowerCase();
+                clearError();
+
+                if (value.length === 0) {
+                    autocompleteList.classList.remove('active');
+                    return;
+                }
+
+                const matches = allData.filter(item =>
+                    item.name.toLowerCase().includes(value)
+                );
+
+                displayAutocomplete(matches, value);
+            });
+
+            input.addEventListener('keydown', (e) => {
+                const items = autocompleteList.querySelectorAll('.autocomplete-item');
+                let currentIndex = Array.from(items).findIndex(item => item.classList.contains('selected'));
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (!autocompleteList.classList.contains('active')) {
+                        autocompleteList.classList.add('active');
+                        return;
+                    }
+                    currentIndex = (currentIndex + 1) % items.length;
+                    updateSelectedIndex(items, currentIndex);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (currentIndex === -1) return;
+                    currentIndex = (currentIndex - 1 + items.length) % items.length;
+                    updateSelectedIndex(items, currentIndex);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (currentIndex !== -1) {
+                        selectItem(items[currentIndex].dataset.index);
+                    }
+                }
+            });
+
+            input.addEventListener('focus', () => {
+                if (input.value.trim().length > 0) {
+                    const value = input.value.trim().toLowerCase();
+                    const matches = allData.filter(item =>
+                        item.name.toLowerCase().includes(value)
+                    );
+                    if (matches.length > 0) {
+                        displayAutocomplete(matches, value);
+                    }
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.input-wrapper')) {
+                    autocompleteList.classList.remove('active');
+                }
+            });
+        }
+
+        function displayAutocomplete(matches, searchValue) {
+            const autocompleteList = document.getElementById('autocompleteList');
+
+            if (matches.length === 0) {
+                autocompleteList.innerHTML = '<div class="no-results">No matches found</div>';
+                autocompleteList.classList.add('active');
+                return;
+            }
+
+            autocompleteList.innerHTML = matches.map((item, index) => {
+                const highlighted = item.name.replace(
+                    new RegExp(`(${searchValue})`, 'gi'),
+                    '<strong>$1</strong>'
+                );
+                return `
+                    <li class="autocomplete-item" data-index="${index}" onclick="selectItem(${index})">
+                        ${highlighted}
+                        <br>
+                        <small style="color: #999; font-size: 12px;">${item.code} • ${item.std ? 'Class ' + item.std : 'N/A'}</small>
+                    </li>
+                `;
+            }).join('');
+
+            autocompleteList.classList.add('active');
+        }
+
+        function updateSelectedIndex(items, index) {
+            items.forEach(item => item.classList.remove('selected'));
+            if (items[index]) {
+                items[index].classList.add('selected');
+                items[index].scrollIntoView({ block: 'nearest' });
+            }
+        }
+
+        function selectItem(index) {
+            const filtered = allData.filter(item =>
+                item.name.toLowerCase().includes(document.getElementById('nameInput').value.trim().toLowerCase())
+            );
+
+            if (filtered[index]) {
+                selectedRecord = filtered[index];
+                document.getElementById('nameInput').value = selectedRecord.name;
+                document.getElementById('autocompleteList').classList.remove('active');
+                displayResult(selectedRecord);
+                clearError();
+            }
+        }
+
+        function displayResult(record) {
+            document.getElementById('codeDisplay').textContent = record.code;
+            document.getElementById('nameDisplay').textContent = record.name;
+            document.getElementById('stdDisplay').textContent = record.std || 'N/A';
+            document.getElementById('schoolDisplay').textContent = record.school || 'N/A';
+            document.getElementById('resultSection').classList.add('show');
+        }
+
+        async function downloadCertificate() {
+            if (!selectedRecord) {
+                showError('Please select a name first!');
+                return;
+            }
+
+            const btn = document.getElementById('downloadBtn');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span>Downloading...';
+
+            try {
+                const certPath = `certs/${selectedRecord.code}.jpg`;
+                const response = await fetch(certPath);
+                
+                if (!response.ok) {
+                    throw new Error('Certificate not found');
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `${selectedRecord.code}_${selectedRecord.name.replace(/\s+/g, '_')}.jpg`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('Download error:', error);
+                showError('Failed to download certificate. Please check if the file exists in the certs folder.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
+
+        function clearError() {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.classList.remove('show');
+        }
+    </script>
+</body>
+</html>
