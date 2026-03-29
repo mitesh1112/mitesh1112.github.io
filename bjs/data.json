@@ -80,14 +80,6 @@
     "mobile2": "9410387617"
   },
   {
-    "code": "A11",
-    "name": "Dharmendra Aniruddh Jethwa",
-    "std": "5",
-    "school": "",
-    "mobile1": "8141891101",
-    "mobile2": ""
-  },
-  {
     "code": "A12",
     "name": "Bharti Satyam Ramnivas",
     "std": "5",
@@ -760,14 +752,6 @@
     "mobile2": ""
   },
   {
-    "code": "A97",
-    "name": "Somya Sutariya",
-    "std": "7",
-    "school": "Bhavans AK Doshi Vidyalaya",
-    "mobile1": "9408297073",
-    "mobile2": ""
-  },
-  {
     "code": "A98",
     "name": "Anjali Arjun Kharadi",
     "std": "7",
@@ -888,14 +872,6 @@
     "mobile2": ""
   },
   {
-    "code": "A113",
-    "name": "Yash Jitendra Bhadra",
-    "std": "6",
-    "school": "",
-    "mobile1": "9327617757",
-    "mobile2": ""
-  },
-  {
     "code": "A114",
     "name": "Yash Jitendra Bhadra",
     "std": "6",
@@ -957,22 +933,6 @@
     "std": "7",
     "school": "Delhi Public School",
     "mobile1": "9327900038",
-    "mobile2": ""
-  },
-  {
-    "code": "A122",
-    "name": "Manya V Patel",
-    "std": "8",
-    "school": "Nand Vidyaniketan School",
-    "mobile1": "9687624493",
-    "mobile2": ""
-  },
-  {
-    "code": "A123",
-    "name": "Jiya Kalavadiya",
-    "std": "8",
-    "school": "St. Xavier's High School",
-    "mobile1": "9427878272",
     "mobile2": ""
   },
   {
@@ -1056,14 +1016,6 @@
     "mobile2": ""
   },
   {
-    "code": "B9",
-    "name": "Mudra Chudasama",
-    "std": "10",
-    "school": "Nand Vidyaniketan School",
-    "mobile1": "9898323200",
-    "mobile2": "9998854539"
-  },
-  {
     "code": "B10",
     "name": "Neha Amit Parmar",
     "std": "9",
@@ -1094,14 +1046,6 @@
     "school": "Nand Vidyaniketan School",
     "mobile1": "9339554405",
     "mobile2": ""
-  },
-  {
-    "code": "B14",
-    "name": "Dhwani Paras Mehta",
-    "std": "",
-    "school": "Nand Vidyaniketan School",
-    "mobile1": "9825061140",
-    "mobile2": "9687879799"
   },
   {
     "code": "B15",
@@ -1192,14 +1136,6 @@
     "mobile2": "9662275411"
   },
   {
-    "code": "B26",
-    "name": "Drashti Anil Vara",
-    "std": "12",
-    "school": "Moti Matli High School",
-    "mobile1": "9712051049",
-    "mobile2": ""
-  },
-  {
     "code": "B27",
     "name": "Mahek Haresh Gajara",
     "std": "9",
@@ -1230,5 +1166,85 @@
     "school": "K. V. 3",
     "mobile1": "7898674292",
     "mobile2": "8510999509"
+  },
+  {
+    "code": "C3",
+    "name": "Poonam M Kanakhara",
+    "std": "",
+    "school": "",
+    "mobile1": "",
+    "mobile2": ""
+  },
+  {
+    "code": "C4",
+    "name": "Mina Rajesh Mnage",
+    "std": "",
+    "school": "",
+    "mobile1": "9737244324",
+    "mobile2": ""
+  },
+  {
+    "code": "C5",
+    "name": "Pooja Darshan Gandhi",
+    "std": "",
+    "school": "",
+    "mobile1": "9429269001",
+    "mobile2": ""
+  },
+  {
+    "code": "C6",
+    "name": "Kinjal Kundalia",
+    "std": "",
+    "school": "",
+    "mobile1": "9428954448",
+    "mobile2": ""
+  },
+  {
+    "code": "C7",
+    "name": "Sangita L Jepar",
+    "std": "",
+    "school": "",
+    "mobile1": "9924405140",
+    "mobile2": ""
+  },
+  {
+    "code": "C8",
+    "name": "Bhagyashree J Raythattha",
+    "std": "",
+    "school": "",
+    "mobile1": "9016203213",
+    "mobile2": "7990538297"
+  },
+  {
+    "code": "C10",
+    "name": "Rashmi Paresh Dharevadiya",
+    "std": "",
+    "school": "",
+    "mobile1": "7990994471",
+    "mobile2": ""
+  },
+  {
+    "code": "C11",
+    "name": "Manisha J Mistry",
+    "std": "",
+    "school": "",
+    "mobile1": "9099511956",
+    "mobile2": ""
+  },
+  {
+    "code": "C12",
+    "name": "Priyanka Mevada",
+    "std": "",
+    "school": "",
+    "mobile1": "8160427944",
+    "mobile2": ""
+  },
+  {
+    "code": "C13",
+    "name": "Diya Jakhariya",
+    "std": "",
+    "school": "",
+    "mobile1": "6352487249",
+    "mobile2": ""
   }
 ]

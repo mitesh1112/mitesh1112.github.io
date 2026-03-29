@@ -3,10 +3,11 @@ import json
 
 # Read CSV
 data = []
-with open('bjs.csv', 'r', encoding='utf-8') as f:
+with open('data.csv', 'r', encoding='utf-8') as f:
     reader = csv.reader(f)
     header = next(reader)  # Skip header
-    for row in reader:
+    rows = [row for row in reader if len(row[0].strip()) > 0]  # Filter out empty rows
+    for row in rows:
         if len(row) >= 6:
             data.append({
                 'code': row[0].strip(),
