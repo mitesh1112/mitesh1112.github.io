@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Lookup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        .search-box {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus {
+            border-color: #667eea;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .result-item {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .result-item:hover {
+            background: #667eea;
+            color: white;
+            transform: translateX(5px);
+        }
+        .result-item .name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        .result-item .download-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .result-item:hover .download-btn {
+            background: white;
+            color: #667eea;
+        }
+        .no-results {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Certificate Lookup</h1>
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Enter name to search..." autocomplete="off">
+        </div>
+        <div class="results" id="results"></div>
+    </div>
+
+    <script>
+        // Load CSV data from external file
+        let certificates = [];
+
+        const loadData = async () => {
+            try {
+                const response = await fetch('data.csv');
+                const csvText = await response.text();
+                certificates = parseCSV(csvText);
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('results').innerHTML = 
+                    '<div class="no-results">Error loading data. Please ensure data.csv exists.</div>';
+            }
+        };
+
+        // Parse CSV
+        const parseCSV = (csv) => {
+            const lines = csv.trim().split('\n');
+            const headers = lines[0].split(',');
+            const data = [];
+            for (let i = 1; i < lines.length; i++) {
+                const parts = lines[i].split(',');
+                if (parts.length >= 2) {
+                    data.push({
+                        mobile: parts[0].trim(),
+                        name: parts[1].trim()
+                    });
+                }
+            }
+            return data;
+        };
+
+        // Initialize on page load
+        loadData();
+
+        // Search functionality
+        const searchInput = document.getElementById('searchInput');
+        const resultsDiv = document.getElementById('results');
+
+        searchInput.addEventListener('input', (e) => {
+            // Wait for data to load
+            if (certificates.length === 0) {
+                resultsDiv.innerHTML = '<div class="loading">Loading data...</div>';
+                return;
+            }
+            const query = e.target.value.toLowerCase().trim();
+            
+            if (query.length === 0) {
+                resultsDiv.innerHTML = '';
+                return;
+            }
+
+            const matches = certificates.filter(cert => 
+                cert.name.toLowerCase().includes(query)
+            );
+
+            if (matches.length === 0) {
+                resultsDiv.innerHTML = '<div class="no-results">No names found</div>';
+                return;
+            }
+
+            const resultsHTML = matches.map(cert => `
+                <div class="result-item">
+                    <span class="name">${cert.name}</span>
+                    <a href="certs/${cert.mobile}.pdf" class="download-btn" download>Download PDF</a>
+                </div>
+            `).join('');
+
+            resultsDiv.innerHTML = resultsHTML;
+        });
+    </script>
+</body>
+</html>
