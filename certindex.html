@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Download</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #202124;
+            background:
+                radial-gradient(circle at top left, rgba(20, 143, 83, 0.14), transparent 34%),
+                radial-gradient(circle at bottom right, rgba(0, 158, 214, 0.14), transparent 36%),
+                #f6f8fb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        main {
+            width: 100%;
+            max-width: 560px;
+            background: #fff;
+            border: 1px solid rgba(20, 143, 83, 0.18);
+            border-radius: 8px;
+            box-shadow: 0 18px 46px rgba(31, 41, 55, 0.14);
+            padding: 32px;
+        }
+
+        .brand {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+
+        .logo-frame {
+            width: min(100%, 360px);
+            background: #fff;
+            border: 1px solid #e4edf0;
+            border-radius: 8px;
+            box-shadow: 0 8px 22px rgba(31, 41, 55, 0.08);
+            padding: 14px 18px;
+        }
+
+        .logo {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 28px;
+            line-height: 1.2;
+            text-align: center;
+        }
+
+        p {
+            margin: 0 0 24px;
+            color: #5f6368;
+            line-height: 1.5;
+            text-align: center;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        input {
+            width: 100%;
+            min-height: 48px;
+            padding: 10px 14px;
+            border: 1px solid #c9d1d9;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        input:focus {
+            border-color: #148f53;
+            box-shadow: 0 0 0 3px rgba(20, 143, 83, 0.16);
+            outline: none;
+        }
+
+        button,
+        .download-link {
+            min-height: 44px;
+            border: 0;
+            border-radius: 6px;
+            background: #148f53;
+            color: #fff;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 700;
+            padding: 10px 18px;
+            text-decoration: none;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 16px;
+        }
+
+        button:hover,
+        .download-link:hover {
+            background: #0f6f41;
+        }
+
+        button:disabled {
+            background: #aeb7c2;
+            cursor: not-allowed;
+        }
+
+        .status {
+            min-height: 24px;
+            margin-top: 16px;
+            color: #5f6368;
+            line-height: 1.45;
+        }
+
+        .status.error {
+            color: #b3261e;
+        }
+
+        .status.success {
+            color: #137333;
+        }
+
+        .results {
+            display: grid;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .result {
+            border: 1px solid #dfe3e8;
+            border-radius: 6px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+        }
+
+        .result-name {
+            min-width: 0;
+            overflow-wrap: anywhere;
+            font-weight: 700;
+        }
+
+        .download-link {
+            flex: 0 0 auto;
+            min-height: 38px;
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 520px) {
+            body {
+                padding: 16px;
+            }
+
+            main {
+                padding: 24px 18px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .result {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .download-link {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="brand">
+            <div class="logo-frame">
+                <img class="logo" src="nnc_logo.jpg" alt="NNC">
+            </div>
+        </div>
+        <h1>Certificate Download</h1>
+        <p id="folderNote">Enter your name exactly as used on the certificate.</p>
+
+        <form id="lookupForm">
+            <label for="personName">Name</label>
+            <input id="personName" name="personName" type="text" placeholder="Example: Mitesh Budhabhatti" autocomplete="name" required>
+            <button id="downloadButton" type="submit">Download PDF</button>
+        </form>
+
+        <div id="status" class="status" aria-live="polite"></div>
+        <div id="results" class="results"></div>
+    </main>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const folder = cleanFolder(params.get('folder') || params.get('dir') || params.get('path') || '');
+        const form = document.getElementById('lookupForm');
+        const input = document.getElementById('personName');
+        const statusBox = document.getElementById('status');
+        const resultsBox = document.getElementById('results');
+        const downloadButton = document.getElementById('downloadButton');
+        const folderNote = document.getElementById('folderNote');
+        let certificates = [];
+
+        if (!folder) {
+            downloadButton.disabled = true;
+            setStatus('Please pass the certificate folder in the URL, for example: certindex.html?folder=nvnsaputara2026', 'error');
+        } else {
+            folderNote.textContent = 'Certificates will be searched in: ' + folder;
+            loadCertificateIndex();
+        }
+
+        form.addEventListener('submit', async function (event) {
+            event.preventDefault();
+            const name = normalizeSpaces(input.value);
+
+            if (!folder || !name) {
+                return;
+            }
+
+            setStatus('Checking certificate...', '');
+            resultsBox.innerHTML = '';
+
+            const directMatch = await findDirectPdf(name);
+            if (directMatch) {
+                downloadPdf(directMatch.url, directMatch.fileName);
+                setStatus('Certificate found. Your download should start now.', 'success');
+                return;
+            }
+
+            const match = findExactIndexMatch(name);
+            if (match && await fileExists(match.url)) {
+                downloadPdf(match.url, match.fileName);
+                setStatus('Certificate found. Your download should start now.', 'success');
+                return;
+            }
+
+            setStatus('Certificate not found. Please check the spelling and try again.', 'error');
+        });
+
+        input.addEventListener('input', function () {
+            renderMatches(normalizeSpaces(input.value));
+        });
+
+        async function loadCertificateIndex() {
+            const indexFiles = ['certindex.json', 'index.json', 'data.csv'];
+
+            for (const file of indexFiles) {
+                try {
+                    const response = await fetch(folder + '/' + file, { cache: 'no-store' });
+                    if (!response.ok) {
+                        continue;
+                    }
+
+                    const text = await response.text();
+                    certificates = file.endsWith('.json') ? parseJsonIndex(text) : parseCsvIndex(text);
+                    if (certificates.length > 0) {
+                        setStatus('Type your name to search the certificate list, or enter the full name to download.', '');
+                        return;
+                    }
+                } catch (error) {
+                    console.warn('Could not load certificate index:', file, error);
+                }
+            }
+        }
+
+        function parseJsonIndex(text) {
+            const data = JSON.parse(text);
+            const rows = Array.isArray(data) ? data : data.certificates;
+
+            if (!Array.isArray(rows)) {
+                return [];
+            }
+
+            return rows.map(function (item) {
+                const name = typeof item === 'string' ? stripPdfExtension(item) : item.name;
+                const fileName = typeof item === 'string' ? ensurePdfExtension(item) : ensurePdfExtension(item.file || item.filename || item.pdf || item.name);
+                return createCertificate(name, fileName);
+            }).filter(Boolean);
+        }
+
+        function parseCsvIndex(text) {
+            return text.split(/\r?\n/)
+                .map(function (line) { return line.trim(); })
+                .filter(Boolean)
+                .map(function (line, index) {
+                    const parts = line.split(',').map(function (part) { return part.trim(); });
+                    if (index === 0 && parts[0].toLowerCase() === 'name') {
+                        return null;
+                    }
+
+                    const name = parts[0];
+                    const fileName = ensurePdfExtension(parts[1] || parts[0]);
+                    return createCertificate(name, fileName);
+                })
+                .filter(Boolean);
+        }
+
+        function createCertificate(name, fileName) {
+            if (!name || !fileName) {
+                return null;
+            }
+
+            return {
+                name: normalizeSpaces(stripPdfExtension(name)),
+                fileName: ensurePdfExtension(fileName),
+                url: buildFileUrl(ensurePdfExtension(fileName))
+            };
+        }
+
+        function renderMatches(query) {
+            if (!query || certificates.length === 0) {
+                resultsBox.innerHTML = '';
+                return;
+            }
+
+            const needle = query.toLowerCase();
+            const matches = certificates
+                .filter(function (certificate) { return certificate.name.toLowerCase().includes(needle); })
+                .slice(0, 8);
+
+            resultsBox.innerHTML = matches.map(function (certificate) {
+                return '<div class="result">' +
+                    '<span class="result-name">' + escapeHtml(certificate.name) + '</span>' +
+                    '<a class="download-link" href="' + certificate.url + '" download="' + escapeHtml(certificate.fileName) + '">Download</a>' +
+                    '</div>';
+            }).join('');
+        }
+
+        function findExactIndexMatch(name) {
+            const needle = name.toLowerCase();
+            return certificates.find(function (certificate) {
+                return certificate.name.toLowerCase() === needle;
+            });
+        }
+
+        async function findDirectPdf(name) {
+            const candidates = uniqueValues([
+                name,
+                toTitleCase(name),
+                name.toUpperCase(),
+                name.toLowerCase()
+            ]);
+
+            for (const candidate of candidates) {
+                const fileName = candidate + '.pdf';
+                const url = buildFileUrl(fileName);
+                if (await fileExists(url)) {
+                    return { fileName: fileName, url: url };
+                }
+            }
+
+            return null;
+        }
+
+        function buildFileUrl(fileName) {
+            return folder + '/' + encodeURIComponent(fileName).replace(/%2F/gi, '/');
+        }
+
+        async function fileExists(url) {
+            try {
+                let response = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+                if (response.ok) {
+                    return true;
+                }
+
+                response = await fetch(url, { cache: 'no-store' });
+                return response.ok;
+            } catch (error) {
+                console.error('Error checking PDF:', error);
+                return false;
+            }
+        }
+
+        function downloadPdf(url, fileName) {
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
+
+        function cleanFolder(value) {
+            return value
+                .trim()
+                .replace(/^\/+|\/+$/g, '')
+                .split('/')
+                .filter(function (part) {
+                    return part && part !== '.' && part !== '..';
+                })
+                .map(encodeURIComponent)
+                .join('/');
+        }
+
+        function normalizeSpaces(value) {
+            return value.trim().replace(/\s+/g, ' ');
+        }
+
+        function toTitleCase(value) {
+            return value.toLowerCase().replace(/\b[a-z]/g, function (letter) {
+                return letter.toUpperCase();
+            });
+        }
+
+        function uniqueValues(values) {
+            return values.filter(function (value, index) {
+                return values.indexOf(value) === index;
+            });
+        }
+
+        function stripPdfExtension(value) {
+            return String(value || '').replace(/\.pdf$/i, '');
+        }
+
+        function ensurePdfExtension(value) {
+            const fileName = String(value || '').trim();
+            return /\.pdf$/i.test(fileName) ? fileName : fileName + '.pdf';
+        }
+
+        function escapeHtml(value) {
+            return String(value).replace(/[&<>"']/g, function (character) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                }[character];
+            });
+        }
+
+        function setStatus(message, type) {
+            statusBox.textContent = message;
+            statusBox.className = 'status' + (type ? ' ' + type : '');
+        }
+    </script>
+</body>
+</html>
