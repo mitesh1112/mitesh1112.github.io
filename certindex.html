@@ -231,7 +231,8 @@
         <form id="lookupForm">
             <label for="personName">Name</label>
             <div class="field-wrap">
-                <input id="personName" name="personName" type="text" placeholder="Example: Mitesh Budhabhatti" autocomplete="off" aria-autocomplete="list" aria-controls="results" required>
+                <input id="personName" name="personName" type="text" placeholder="Example: Mitesh Budhabhatti" autocomplete="off" list="nameSuggestions" aria-autocomplete="list" aria-controls="results" required>
+                <datalist id="nameSuggestions"></datalist>
             </div>
             <div id="results" class="results" role="listbox" hidden></div>
             <button id="downloadButton" type="submit">Download PDF</button>
@@ -247,10 +248,10 @@
         const input = document.getElementById('personName');
         const statusBox = document.getElementById('status');
         const resultsBox = document.getElementById('results');
+        const suggestions = document.getElementById('nameSuggestions');
         const downloadButton = document.getElementById('downloadButton');
         const folderNote = document.getElementById('folderNote');
         const defaultGitHubRepo = 'mitesh1112/mitesh1112.github.io';
-        const defaultGitHubBranch = 'main';
         let certificates = [];
         let isLoadingNames = false;
 
@@ -305,9 +306,9 @@
         });
 
         async function loadCertificateNames() {
-            const apiUrl = getGitHubContentsApiUrl();
+            const repoInfo = getGitHubRepoInfo();
 
-            if (!apiUrl) {
+            if (!repoInfo.owner || !repoInfo.repo) {
                 setStatus('Enter your full name to download. Autocomplete could not determine the GitHub repository.', '');
                 return;
             }
@@ -316,33 +317,18 @@
             setStatus('Loading certificate names...', '');
 
             try {
-                const response = await fetch(apiUrl, { cache: 'no-store' });
-                if (!response.ok) {
-                    throw new Error('GitHub API returned ' + response.status);
-                }
-
-                const files = await response.json();
-                if (!Array.isArray(files)) {
-                    throw new Error('GitHub API response was not a folder listing');
-                }
-
-                certificates = files
-                    .filter(function (file) {
-                        return file.type === 'file' && /\.pdf$/i.test(file.name);
-                    })
-                    .map(function (file) {
-                        return createCertificate(stripPdfExtension(file.name), file.name);
-                    })
-                    .filter(Boolean)
-                    .sort(function (first, second) {
-                        return second.name.localeCompare(first.name);
-                    });
+                const branch = await getDefaultBranch(repoInfo);
+                const files = await fetchPdfFiles(repoInfo, branch);
+                certificates = files.map(function (fileName) {
+                    return createCertificate(stripPdfExtension(fileName), fileName);
+                }).filter(Boolean).sort(sortByNameDescending);
 
                 if (certificates.length === 0) {
                     setStatus('No PDF files were found in this folder. Please check the folder name in the URL.', 'error');
                     return;
                 }
 
+                populateNameSuggestions();
                 setStatus('Type your name to search matching certificates.', '');
             } catch (error) {
                 console.warn('Could not load PDF names from GitHub:', error);
@@ -351,6 +337,73 @@
                 isLoadingNames = false;
                 renderMatches(normalizeSpaces(input.value));
             }
+        }
+
+        async function getDefaultBranch(repoInfo) {
+            if (params.get('branch')) {
+                return params.get('branch');
+            }
+
+            const response = await fetch(getGitHubRepoApiUrl(repoInfo), { cache: 'no-store' });
+            if (!response.ok) {
+                return 'main';
+            }
+
+            const repo = await response.json();
+            return repo.default_branch || 'main';
+        }
+
+        async function fetchPdfFiles(repoInfo, branch) {
+            const contentFiles = await fetchPdfFilesFromContents(repoInfo, branch);
+            if (contentFiles.length > 0) {
+                return contentFiles;
+            }
+
+            return fetchPdfFilesFromTree(repoInfo, branch);
+        }
+
+        async function fetchPdfFilesFromContents(repoInfo, branch) {
+            const response = await fetch(getGitHubContentsApiUrl(repoInfo, branch), { cache: 'no-store' });
+            if (!response.ok) {
+                return [];
+            }
+
+            const files = await response.json();
+            if (!Array.isArray(files)) {
+                return [];
+            }
+
+            return files
+                .filter(function (file) {
+                    return file.type === 'file' && /\.pdf$/i.test(file.name);
+                })
+                .map(function (file) {
+                    return file.name;
+                });
+        }
+
+        async function fetchPdfFilesFromTree(repoInfo, branch) {
+            const response = await fetch(getGitHubTreeApiUrl(repoInfo, branch), { cache: 'no-store' });
+            if (!response.ok) {
+                return [];
+            }
+
+            const data = await response.json();
+            if (!Array.isArray(data.tree)) {
+                return [];
+            }
+
+            const folderPrefix = folder.replace(/\/+$/g, '') + '/';
+            return data.tree
+                .filter(function (item) {
+                    return item.type === 'blob' &&
+                        item.path.indexOf(folderPrefix) === 0 &&
+                        item.path.slice(folderPrefix.length).indexOf('/') === -1 &&
+                        /\.pdf$/i.test(item.path);
+                })
+                .map(function (item) {
+                    return item.path.slice(folderPrefix.length);
+                });
         }
 
         function createCertificate(name, fileName) {
@@ -386,7 +439,7 @@
             const needle = query.toLowerCase();
             const matches = certificates
                 .filter(function (certificate) { return certificate.name.toLowerCase().includes(needle); })
-                .sort(function (first, second) { return second.name.localeCompare(first.name); });
+                    .sort(sortByNameDescending);
 
             if (matches.length === 0) {
                 resultsBox.hidden = false;
@@ -401,6 +454,12 @@
                     '</div>';
             }).join('');
             resultsBox.hidden = false;
+        }
+
+        function populateNameSuggestions() {
+            suggestions.innerHTML = certificates.map(function (certificate) {
+                return '<option value="' + escapeHtml(certificate.name) + '"></option>';
+            }).join('');
         }
 
         resultsBox.addEventListener('click', function (event) {
@@ -453,14 +512,12 @@
             return folder + '/' + encodeURIComponent(fileName).replace(/%2F/gi, '/');
         }
 
-        function getGitHubContentsApiUrl() {
+        function getGitHubRepoInfo() {
             const host = window.location.hostname.toLowerCase();
             const pathParts = window.location.pathname.split('/').filter(Boolean);
             const repoParam = params.get('repo') || defaultGitHubRepo;
-            const branch = params.get('branch') || defaultGitHubBranch;
             let owner = '';
             let repo = '';
-            let folderPath = folder;
 
             if (host.endsWith('.github.io')) {
                 owner = host.replace('.github.io', '');
@@ -475,15 +532,28 @@
                 repo = pathParts[0];
             }
 
-            if (host.endsWith('.github.io') && repo !== owner + '.github.io' && pathParts.length > 1) {
-                folderPath = pathParts.slice(1, -1).concat(folder).filter(Boolean).join('/');
-            }
+            return { owner: owner, repo: repo };
+        }
 
+        function getGitHubRepoApiUrl(repoInfo) {
             return 'https://api.github.com/repos/' +
-                encodeURIComponent(owner) + '/' +
-                encodeURIComponent(repo) + '/contents/' +
-                folderPath.split('/').map(encodeURIComponent).join('/') +
+                encodeURIComponent(repoInfo.owner) + '/' +
+                encodeURIComponent(repoInfo.repo);
+        }
+
+        function getGitHubContentsApiUrl(repoInfo, branch) {
+            return getGitHubRepoApiUrl(repoInfo) + '/contents/' +
+                folder.split('/').map(encodeURIComponent).join('/') +
                 '?ref=' + encodeURIComponent(branch);
+        }
+
+        function getGitHubTreeApiUrl(repoInfo, branch) {
+            return getGitHubRepoApiUrl(repoInfo) + '/git/trees/' +
+                encodeURIComponent(branch) + '?recursive=1';
+        }
+
+        function sortByNameDescending(first, second) {
+            return second.name.localeCompare(first.name);
         }
 
         async function fileExists(url) {
