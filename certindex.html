@@ -75,6 +75,10 @@
             font-weight: 700;
         }
 
+        .field-wrap {
+            position: relative;
+        }
+
         input {
             width: 100%;
             min-height: 48px;
@@ -138,32 +142,55 @@
         }
 
         .results {
-            display: grid;
-            gap: 10px;
-            margin-top: 18px;
+            position: absolute;
+            z-index: 10;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            max-height: 240px;
+            overflow-y: auto;
+            background: #fff;
+            border: 1px solid #c9d1d9;
+            border-radius: 6px;
+            box-shadow: 0 12px 26px rgba(31, 41, 55, 0.16);
         }
 
         .result {
-            border: 1px solid #dfe3e8;
-            border-radius: 6px;
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px;
-        }
-
-        .result-name {
-            min-width: 0;
-            overflow-wrap: anywhere;
+            width: 100%;
+            border: 0;
+            border-bottom: 1px solid #edf0f2;
+            border-radius: 0;
+            background: #fff;
+            color: #202124;
+            cursor: pointer;
+            display: block;
+            font-size: 15px;
             font-weight: 700;
+            min-height: auto;
+            padding: 12px 14px;
+            text-align: left;
         }
 
-        .download-link {
-            flex: 0 0 auto;
-            min-height: 38px;
-            padding: 8px 12px;
-            font-size: 14px;
+        .result:last-child {
+            border-bottom: 0;
+        }
+
+        .result:hover,
+        .result:focus {
+            background: #eaf6ef;
+            color: #0f6f41;
+            outline: none;
+        }
+
+        .result.empty {
+            color: #6f7782;
+            cursor: default;
+            font-weight: 400;
+        }
+
+        .result.empty:hover {
+            background: #fff;
+            color: #6f7782;
         }
 
         @media (max-width: 520px) {
@@ -177,11 +204,6 @@
 
             h1 {
                 font-size: 24px;
-            }
-
-            .result {
-                align-items: stretch;
-                flex-direction: column;
             }
 
             .download-link {
@@ -202,12 +224,14 @@
 
         <form id="lookupForm">
             <label for="personName">Name</label>
-            <input id="personName" name="personName" type="text" placeholder="Example: Mitesh Budhabhatti" autocomplete="name" required>
+            <div class="field-wrap">
+                <input id="personName" name="personName" type="text" placeholder="Example: Mitesh Budhabhatti" autocomplete="off" aria-autocomplete="list" aria-controls="results" required>
+                <div id="results" class="results" role="listbox" hidden></div>
+            </div>
             <button id="downloadButton" type="submit">Download PDF</button>
         </form>
 
         <div id="status" class="status" aria-live="polite"></div>
-        <div id="results" class="results"></div>
     </main>
 
     <script>
@@ -226,7 +250,7 @@
             setStatus('Please pass the certificate folder in the URL, for example: certindex.html?folder=nvnsaputara2026', 'error');
         } else {
             folderNote.textContent = 'Certificates will be searched in: ' + folder;
-            loadCertificateIndex();
+            loadCertificateNames();
         }
 
         form.addEventListener('submit', async function (event) {
@@ -261,58 +285,57 @@
             renderMatches(normalizeSpaces(input.value));
         });
 
-        async function loadCertificateIndex() {
-            const indexFiles = ['certindex.json', 'index.json', 'data.csv'];
+        input.addEventListener('focus', function () {
+            renderMatches(normalizeSpaces(input.value));
+        });
 
-            for (const file of indexFiles) {
-                try {
-                    const response = await fetch(folder + '/' + file, { cache: 'no-store' });
-                    if (!response.ok) {
-                        continue;
-                    }
+        document.addEventListener('click', function (event) {
+            if (!event.target.closest('.field-wrap')) {
+                hideMatches();
+            }
+        });
 
-                    const text = await response.text();
-                    certificates = file.endsWith('.json') ? parseJsonIndex(text) : parseCsvIndex(text);
-                    if (certificates.length > 0) {
-                        setStatus('Type your name to search the certificate list, or enter the full name to download.', '');
-                        return;
-                    }
-                } catch (error) {
-                    console.warn('Could not load certificate index:', file, error);
+        async function loadCertificateNames() {
+            const apiUrl = getGitHubContentsApiUrl();
+
+            if (!apiUrl) {
+                setStatus('Enter your full name to download. Autocomplete is available after publishing on GitHub Pages.', '');
+                return;
+            }
+
+            try {
+                const response = await fetch(apiUrl, { cache: 'no-store' });
+                if (!response.ok) {
+                    throw new Error('GitHub API returned ' + response.status);
                 }
+
+                const files = await response.json();
+                if (!Array.isArray(files)) {
+                    throw new Error('GitHub API response was not a folder listing');
+                }
+
+                certificates = files
+                    .filter(function (file) {
+                        return file.type === 'file' && /\.pdf$/i.test(file.name);
+                    })
+                    .map(function (file) {
+                        return createCertificate(stripPdfExtension(file.name), file.name);
+                    })
+                    .filter(Boolean)
+                    .sort(function (first, second) {
+                        return second.name.localeCompare(first.name);
+                    });
+
+                if (certificates.length === 0) {
+                    setStatus('No PDF files were found in this folder. Please check the folder name in the URL.', 'error');
+                    return;
+                }
+
+                setStatus('Type your name to search matching certificates.', '');
+            } catch (error) {
+                console.warn('Could not load PDF names from GitHub:', error);
+                setStatus('Enter your full name to download. Autocomplete could not load the folder file list.', '');
             }
-        }
-
-        function parseJsonIndex(text) {
-            const data = JSON.parse(text);
-            const rows = Array.isArray(data) ? data : data.certificates;
-
-            if (!Array.isArray(rows)) {
-                return [];
-            }
-
-            return rows.map(function (item) {
-                const name = typeof item === 'string' ? stripPdfExtension(item) : item.name;
-                const fileName = typeof item === 'string' ? ensurePdfExtension(item) : ensurePdfExtension(item.file || item.filename || item.pdf || item.name);
-                return createCertificate(name, fileName);
-            }).filter(Boolean);
-        }
-
-        function parseCsvIndex(text) {
-            return text.split(/\r?\n/)
-                .map(function (line) { return line.trim(); })
-                .filter(Boolean)
-                .map(function (line, index) {
-                    const parts = line.split(',').map(function (part) { return part.trim(); });
-                    if (index === 0 && parts[0].toLowerCase() === 'name') {
-                        return null;
-                    }
-
-                    const name = parts[0];
-                    const fileName = ensurePdfExtension(parts[1] || parts[0]);
-                    return createCertificate(name, fileName);
-                })
-                .filter(Boolean);
         }
 
         function createCertificate(name, fileName) {
@@ -329,21 +352,43 @@
 
         function renderMatches(query) {
             if (!query || certificates.length === 0) {
-                resultsBox.innerHTML = '';
+                hideMatches();
                 return;
             }
 
             const needle = query.toLowerCase();
             const matches = certificates
                 .filter(function (certificate) { return certificate.name.toLowerCase().includes(needle); })
-                .slice(0, 8);
+                .sort(function (first, second) { return second.name.localeCompare(first.name); });
+
+            if (matches.length === 0) {
+                resultsBox.hidden = false;
+                resultsBox.innerHTML = '<div class="result empty">No matching names found</div>';
+                return;
+            }
 
             resultsBox.innerHTML = matches.map(function (certificate) {
-                return '<div class="result">' +
-                    '<span class="result-name">' + escapeHtml(certificate.name) + '</span>' +
-                    '<a class="download-link" href="' + certificate.url + '" download="' + escapeHtml(certificate.fileName) + '">Download</a>' +
-                    '</div>';
+                return '<button class="result" type="button" role="option" data-name="' + escapeHtml(certificate.name) + '">' +
+                    escapeHtml(certificate.name) +
+                    '</button>';
             }).join('');
+            resultsBox.hidden = false;
+        }
+
+        resultsBox.addEventListener('click', function (event) {
+            const selected = event.target.closest('.result:not(.empty)');
+            if (!selected) {
+                return;
+            }
+
+            input.value = selected.dataset.name;
+            hideMatches();
+            input.focus();
+        });
+
+        function hideMatches() {
+            resultsBox.hidden = true;
+            resultsBox.innerHTML = '';
         }
 
         function findExactIndexMatch(name) {
@@ -374,6 +419,34 @@
 
         function buildFileUrl(fileName) {
             return folder + '/' + encodeURIComponent(fileName).replace(/%2F/gi, '/');
+        }
+
+        function getGitHubContentsApiUrl() {
+            const host = window.location.hostname.toLowerCase();
+            const pathParts = window.location.pathname.split('/').filter(Boolean);
+            let owner = '';
+            let repo = '';
+            let folderPath = folder;
+
+            if (host.endsWith('.github.io')) {
+                owner = host.replace('.github.io', '');
+                repo = owner + '.github.io';
+            } else {
+                return '';
+            }
+
+            if (pathParts.length > 0 && pathParts[0].toLowerCase() !== 'certindex.html') {
+                repo = pathParts[0];
+            }
+
+            if (repo !== owner + '.github.io' && pathParts.length > 1) {
+                folderPath = pathParts.slice(1, -1).concat(folder).filter(Boolean).join('/');
+            }
+
+            return 'https://api.github.com/repos/' +
+                encodeURIComponent(owner) + '/' +
+                encodeURIComponent(repo) + '/contents/' +
+                folderPath.split('/').map(encodeURIComponent).join('/');
         }
 
         async function fileExists(url) {
