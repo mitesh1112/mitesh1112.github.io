@@ -506,7 +506,7 @@
         }
 
         function buildFileUrl(fileName) {
-            return folder + '/' + encodeURIComponent(fileName).replace(/%2F/gi, '/');
+            return encodePathSegments(folder) + '/' + encodeURIComponent(fileName);
         }
 
         function getGitHubRepoInfo() {
@@ -540,7 +540,7 @@
 
         function getGitHubContentsApiUrl(repoInfo, branch) {
             return getGitHubRepoApiUrl(repoInfo) + '/contents/' +
-                folder.split('/').map(encodeURIComponent).join('/') +
+                encodePathSegments(folder) +
                 '?ref=' + encodeURIComponent(branch);
         }
 
@@ -585,8 +585,11 @@
                 .filter(function (part) {
                     return part && part !== '.' && part !== '..';
                 })
-                .map(encodeURIComponent)
                 .join('/');
+        }
+
+        function encodePathSegments(value) {
+            return value.split('/').map(encodeURIComponent).join('/');
         }
 
         function normalizeSpaces(value) {
