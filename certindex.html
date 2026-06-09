@@ -251,13 +251,14 @@
         const defaultGitHubRepo = 'mitesh1112/mitesh1112.github.io';
         let certificates = [];
         let isLoadingNames = false;
+        let certificateNamesPromise = null;
 
         if (!folder) {
             downloadButton.disabled = true;
             setStatus('Please pass the certificate folder in the URL, for example: certindex.html?folder=nvnsaputara2026', 'error');
         } else {
             folderNote.textContent = 'Event - ' + folder;
-            loadCertificateNames();
+            certificateNamesPromise = loadCertificateNames();
         }
 
         form.addEventListener('submit', async function (event) {
@@ -271,6 +272,10 @@
             setStatus('Checking certificate...', '');
             resultsBox.innerHTML = '';
 
+            if (certificateNamesPromise) {
+                await certificateNamesPromise;
+            }
+
             const directMatch = await findDirectPdf(name);
             if (directMatch) {
                 downloadPdf(directMatch.url, directMatch.fileName);
@@ -281,6 +286,13 @@
             const match = findExactIndexMatch(name);
             if (match && await fileExists(match.url)) {
                 downloadPdf(match.url, match.fileName);
+                setStatus('Certificate found. Your download should start now.', 'success');
+                return;
+            }
+
+            const closeMatch = findCloseIndexMatch(name);
+            if (closeMatch && await fileExists(closeMatch.url)) {
+                downloadPdf(closeMatch.url, closeMatch.fileName);
                 setStatus('Certificate found. Your download should start now.', 'success');
                 return;
             }
@@ -486,6 +498,15 @@
             });
         }
 
+        function findCloseIndexMatch(name) {
+            const needle = normalizeForLooseMatch(name);
+            const matches = certificates.filter(function (certificate) {
+                return normalizeForLooseMatch(certificate.name) === needle;
+            });
+
+            return matches.length === 1 ? matches[0] : null;
+        }
+
         async function findDirectPdf(name) {
             const candidates = uniqueValues([
                 name,
@@ -578,7 +599,7 @@
         }
 
         function cleanFolder(value) {
-            return value
+            return decodeUrlValue(value)
                 .trim()
                 .replace(/^\/+|\/+$/g, '')
                 .split('/')
@@ -588,12 +609,37 @@
                 .join('/');
         }
 
+        function decodeUrlValue(value) {
+            let decoded = String(value || '').replace(/\+/g, ' ');
+
+            for (let attempt = 0; attempt < 3; attempt++) {
+                try {
+                    const next = decodeURIComponent(decoded);
+                    if (next === decoded) {
+                        break;
+                    }
+                    decoded = next;
+                } catch (error) {
+                    break;
+                }
+            }
+
+            return decoded;
+        }
+
         function encodePathSegments(value) {
             return value.split('/').map(encodeURIComponent).join('/');
         }
 
         function normalizeSpaces(value) {
             return value.trim().replace(/\s+/g, ' ');
+        }
+
+        function normalizeForLooseMatch(value) {
+            return normalizeSpaces(stripPdfExtension(value))
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, '')
+                .replace(/(.)\1+/g, '$1');
         }
 
         function toTitleCase(value) {
