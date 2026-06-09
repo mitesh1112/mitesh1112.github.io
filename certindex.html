@@ -76,7 +76,7 @@
         }
 
         .field-wrap {
-            position: relative;
+            margin-bottom: 14px;
         }
 
         input {
@@ -142,44 +142,38 @@
         }
 
         .results {
-            position: absolute;
-            z-index: 10;
-            top: calc(100% + 6px);
-            left: 0;
-            right: 0;
+            display: grid;
+            gap: 10px;
             max-height: 240px;
             overflow-y: auto;
-            background: #fff;
-            border: 1px solid #c9d1d9;
-            border-radius: 6px;
-            box-shadow: 0 12px 26px rgba(31, 41, 55, 0.16);
+            margin: 10px 0 0;
         }
 
         .result {
-            width: 100%;
-            border: 0;
-            border-bottom: 1px solid #edf0f2;
-            border-radius: 0;
-            background: #fff;
+            background: #f8faf9;
+            border: 1px solid #dfe8e2;
+            border-radius: 6px;
             color: #202124;
             cursor: pointer;
-            display: block;
-            font-size: 15px;
-            font-weight: 700;
-            min-height: auto;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
             padding: 12px 14px;
-            text-align: left;
+            transition: background 0.2s ease, border-color 0.2s ease;
         }
 
-        .result:last-child {
-            border-bottom: 0;
-        }
-
-        .result:hover,
-        .result:focus {
+        .result:hover {
             background: #eaf6ef;
-            color: #0f6f41;
-            outline: none;
+            border-color: #b8dcc6;
+        }
+
+        .result-name {
+            min-width: 0;
+            overflow-wrap: anywhere;
+            color: #202124;
+            cursor: pointer;
+            font-weight: 700;
         }
 
         .result.empty {
@@ -193,6 +187,13 @@
             color: #6f7782;
         }
 
+        .download-link {
+            flex: 0 0 auto;
+            min-height: 36px;
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+
         @media (max-width: 520px) {
             body {
                 padding: 16px;
@@ -204,6 +205,11 @@
 
             h1 {
                 font-size: 24px;
+            }
+
+            .result {
+                align-items: stretch;
+                flex-direction: column;
             }
 
             .download-link {
@@ -226,8 +232,8 @@
             <label for="personName">Name</label>
             <div class="field-wrap">
                 <input id="personName" name="personName" type="text" placeholder="Example: Mitesh Budhabhatti" autocomplete="off" aria-autocomplete="list" aria-controls="results" required>
-                <div id="results" class="results" role="listbox" hidden></div>
             </div>
+            <div id="results" class="results" role="listbox" hidden></div>
             <button id="downloadButton" type="submit">Download PDF</button>
         </form>
 
@@ -243,7 +249,10 @@
         const resultsBox = document.getElementById('results');
         const downloadButton = document.getElementById('downloadButton');
         const folderNote = document.getElementById('folderNote');
+        const defaultGitHubRepo = 'mitesh1112/mitesh1112.github.io';
+        const defaultGitHubBranch = 'main';
         let certificates = [];
+        let isLoadingNames = false;
 
         if (!folder) {
             downloadButton.disabled = true;
@@ -290,7 +299,7 @@
         });
 
         document.addEventListener('click', function (event) {
-            if (!event.target.closest('.field-wrap')) {
+            if (!event.target.closest('#lookupForm')) {
                 hideMatches();
             }
         });
@@ -299,9 +308,12 @@
             const apiUrl = getGitHubContentsApiUrl();
 
             if (!apiUrl) {
-                setStatus('Enter your full name to download. Autocomplete is available after publishing on GitHub Pages.', '');
+                setStatus('Enter your full name to download. Autocomplete could not determine the GitHub repository.', '');
                 return;
             }
+
+            isLoadingNames = true;
+            setStatus('Loading certificate names...', '');
 
             try {
                 const response = await fetch(apiUrl, { cache: 'no-store' });
@@ -335,6 +347,9 @@
             } catch (error) {
                 console.warn('Could not load PDF names from GitHub:', error);
                 setStatus('Enter your full name to download. Autocomplete could not load the folder file list.', '');
+            } finally {
+                isLoadingNames = false;
+                renderMatches(normalizeSpaces(input.value));
             }
         }
 
@@ -351,8 +366,20 @@
         }
 
         function renderMatches(query) {
-            if (!query || certificates.length === 0) {
+            if (!query) {
                 hideMatches();
+                return;
+            }
+
+            if (isLoadingNames) {
+                resultsBox.hidden = false;
+                resultsBox.innerHTML = '<div class="result empty">Loading names...</div>';
+                return;
+            }
+
+            if (certificates.length === 0) {
+                resultsBox.hidden = false;
+                resultsBox.innerHTML = '<div class="result empty">Name list is not available. Enter your full name and click Download PDF.</div>';
                 return;
             }
 
@@ -368,14 +395,19 @@
             }
 
             resultsBox.innerHTML = matches.map(function (certificate) {
-                return '<button class="result" type="button" role="option" data-name="' + escapeHtml(certificate.name) + '">' +
-                    escapeHtml(certificate.name) +
-                    '</button>';
+                return '<div class="result" role="option" data-name="' + escapeHtml(certificate.name) + '">' +
+                    '<span class="result-name">' + escapeHtml(certificate.name) + '</span>' +
+                    '<a class="download-link" href="' + certificate.url + '" download="' + escapeHtml(certificate.fileName) + '">Download PDF</a>' +
+                    '</div>';
             }).join('');
             resultsBox.hidden = false;
         }
 
         resultsBox.addEventListener('click', function (event) {
+            if (event.target.closest('.download-link')) {
+                return;
+            }
+
             const selected = event.target.closest('.result:not(.empty)');
             if (!selected) {
                 return;
@@ -424,6 +456,8 @@
         function getGitHubContentsApiUrl() {
             const host = window.location.hostname.toLowerCase();
             const pathParts = window.location.pathname.split('/').filter(Boolean);
+            const repoParam = params.get('repo') || defaultGitHubRepo;
+            const branch = params.get('branch') || defaultGitHubBranch;
             let owner = '';
             let repo = '';
             let folderPath = folder;
@@ -432,21 +466,24 @@
                 owner = host.replace('.github.io', '');
                 repo = owner + '.github.io';
             } else {
-                return '';
+                const repoParts = repoParam.split('/');
+                owner = repoParts[0] || '';
+                repo = repoParts[1] || '';
             }
 
-            if (pathParts.length > 0 && pathParts[0].toLowerCase() !== 'certindex.html') {
+            if (host.endsWith('.github.io') && pathParts.length > 0 && pathParts[0].toLowerCase() !== 'certindex.html') {
                 repo = pathParts[0];
             }
 
-            if (repo !== owner + '.github.io' && pathParts.length > 1) {
+            if (host.endsWith('.github.io') && repo !== owner + '.github.io' && pathParts.length > 1) {
                 folderPath = pathParts.slice(1, -1).concat(folder).filter(Boolean).join('/');
             }
 
             return 'https://api.github.com/repos/' +
                 encodeURIComponent(owner) + '/' +
                 encodeURIComponent(repo) + '/contents/' +
-                folderPath.split('/').map(encodeURIComponent).join('/');
+                folderPath.split('/').map(encodeURIComponent).join('/') +
+                '?ref=' + encodeURIComponent(branch);
         }
 
         async function fileExists(url) {
