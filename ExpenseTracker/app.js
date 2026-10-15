@@ -14,6 +14,8 @@
   const noteInput = byId('expense-note');
   const submit = byId('submit-expense');
   const refresh = byId('refresh-expenses');
+  const loadMore = byId('load-more-expenses');
+  const PAGE_SIZE = 50;
   const formStatus = byId('form-status');
   const feedStatus = byId('feed-status');
   const list = byId('expense-list');
@@ -41,6 +43,12 @@
   });
   let client;
   let expenses = [];
+  let monthlyExpenses = [];
+  let dashboardMonth = '';
+  let monthlyRequest = 0;
+  let nextOffset = 0;
+  let totalExpenses = null;
+  let hasMore = false;
   let saving = false;
   let loading = false;
   let hasLoaded = false;
@@ -69,6 +77,9 @@
   function syncControls() {
     submit.disabled = !client || !usersReady || !selectedUser || saving || loading || deletingId !== null;
     refresh.disabled = !client || saving || loading || deletingId !== null;
+    loadMore.hidden = !hasLoaded || !hasMore;
+    loadMore.disabled = !client || saving || loading || deletingId !== null;
+    loadMore.textContent = loading ? 'Loading…' : 'Load more';
     activeUser.disabled = !usersReady || !users.length || saving || loading || deletingId !== null;
     for (const button of deleteButtons) button.disabled = !client || saving || loading || deletingId !== null;
     search.disabled = !hasLoaded;
@@ -179,11 +190,12 @@
     }
     list.replaceChildren(fragment);
     emptyState.hidden = filtered.length > 0 || !hasLoaded;
-    emptyState.querySelector('h3').textContent = query && expenses.length ? 'No matching expenses' : 'No expenses yet';
+    emptyState.querySelector('h3').textContent = query && expenses.length ? 'No matching expenses' : hasMore ? 'More expenses available' : 'No expenses yet';
     emptyState.querySelector('p').textContent = query && expenses.length
       ? 'Try another person, category, date, or note, or clear your search to see all expenses.'
-      : 'Add your first expense using the form to start tracking your spending.';
-    const count = query ? `${filtered.length} of ${expenses.length} expenses match` : `${expenses.length} expense${expenses.length === 1 ? '' : 's'}`;
+      : hasMore ? 'Use Load more to see older expenses.' : 'Add your first expense using the form to start tracking your spending.';
+    const loaded = totalExpenses === null ? `${expenses.length} expenses loaded` : `${expenses.length} of ${totalExpenses} expenses loaded`;
+    const count = query ? `${filtered.length} matches in ${expenses.length} loaded expenses` : loaded;
     message(feedStatus, `${lastLoadError ? `${lastLoadError} ` : ''}${count} · latest date first`, Boolean(lastLoadError));
     syncControls();
   }
@@ -191,7 +203,7 @@
   function renderDashboard() {
     const now = new Date();
     const monthPrefix = today().slice(0, 7);
-    const monthly = expenses.filter((expense) => expense.date.startsWith(`${monthPrefix}-`));
+    const monthly = monthlyExpenses.filter((expense) => expense.date.startsWith(`${monthPrefix}-`));
     const groups = new Map();
     let totalCents = 0;
     for (const expense of monthly) {
@@ -266,38 +278,63 @@
     }
   }
 
-  async function loadExpenses() {
-    if (!client || loading) return false;
-    loading = true;
-    emptyState.hidden = true;
-    syncControls();
-    message(feedStatus, 'Loading expenses…');
+  async function loadMonthlyExpenses() {
+    const request = ++monthlyRequest;
+    const month = today().slice(0, 7);
+    const [year, monthNumber] = month.split('-').map(Number);
+    const nextMonth = `${monthNumber === 12 ? year + 1 : year}-${String(monthNumber === 12 ? 1 : monthNumber + 1).padStart(2, '0')}-01`;
     try {
-      await loadUsers();
-      // Fetch every page instead of silently truncating at the API row limit.
       const rows = [];
-      const pageSize = 500;
       let offset = 0;
       while (true) {
+        // Only the current month's minimal summary fields; never the full feed.
         const { data, error } = await client.from('expenses')
-          .select('id,date,amount,category,note,created_at,user_id,user:users!expenses_user_id_fkey(name)')
-          .order('date', { ascending: false })
-          .order('created_at', { ascending: false })
-          .order('id', { ascending: false })
-          .range(offset, offset + pageSize - 1);
+          .select('id,date,amount,category')
+          .gte('date', `${month}-01`).lt('date', nextMonth)
+          .order('id', { ascending: true }).range(offset, offset + 499);
         if (error) throw error;
         if (!data.length) break;
         rows.push(...data);
         offset += data.length;
       }
-      expenses = rows;
+      if (request !== monthlyRequest) return;
+      monthlyExpenses = rows;
+      dashboardMonth = month;
+      renderDashboard();
+    } catch {
+      if (request !== monthlyRequest) return;
+      monthlySummary.textContent = 'Could not refresh the monthly summary. Use Refresh expenses to retry. Any displayed totals are from the previous successful load.';
+    }
+  }
+
+  async function loadExpenses(append = false) {
+    if (!client || loading || (append && (!hasLoaded || !hasMore))) return false;
+    loading = true;
+    emptyState.hidden = true;
+    syncControls();
+    message(feedStatus, 'Loading expenses…');
+    try {
+      if (!append) await loadUsers();
+      const offset = append ? nextOffset : 0;
+      const { data, error, count } = await client.from('expenses')
+        .select('id,date,amount,category,note,created_at,user_id,user:users!expenses_user_id_fkey(name)', { count: 'exact' })
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .range(offset, offset + PAGE_SIZE - 1);
+      if (error) throw error;
+      const combined = append ? [...expenses, ...data] : data;
+      expenses = [...new Map(combined.map((expense) => [expense.id, expense])).values()];
+      nextOffset = offset + data.length;
+      totalExpenses = count ?? null;
+      hasMore = data.length > 0 && (count === null || count === undefined ? data.length === PAGE_SIZE : nextOffset < count);
       hasLoaded = true;
       lastLoadError = '';
       renderExpenses();
-      renderDashboard();
+      if (!append) await loadMonthlyExpenses();
       return true;
     } catch (error) {
-      lastLoadError = `Could not load expenses. ${errorMessage(error)} Use Refresh expenses to retry.${hasLoaded ? ' Showing previously loaded data.' : ''}`;
+      lastLoadError = `Could not load expenses. ${errorMessage(error)} ${append ? 'Use Load more to retry.' : 'Use Refresh expenses to retry.'}${hasLoaded ? ' Showing previously loaded data.' : ''}`;
       if (hasLoaded) renderExpenses();
       else message(feedStatus, lastLoadError, true);
       return false;
@@ -368,8 +405,14 @@
         return;
       }
       expenses = expenses.filter((row) => row.id !== expense.id);
+      // Removing a loaded row shifts the next server page back by one.
+      nextOffset = Math.max(0, nextOffset - 1);
+      if (totalExpenses !== null) totalExpenses = Math.max(0, totalExpenses - 1);
+      if (totalExpenses !== null) hasMore = nextOffset < totalExpenses;
+      ++monthlyRequest;
+      monthlyExpenses = monthlyExpenses.filter((row) => row.id !== expense.id);
       renderExpenses();
-      renderDashboard();
+      if (dashboardMonth === today().slice(0, 7)) renderDashboard();
       message(actionStatus, 'Expense deleted.');
     } catch (error) {
       message(actionStatus, `Delete could not be confirmed. ${errorMessage(error)} Refresh the feed before retrying.`, true);
@@ -398,10 +441,11 @@
 
   dateInput.value = today();
   form.addEventListener('submit', saveExpense);
-  refresh.addEventListener('click', loadExpenses);
+  refresh.addEventListener('click', () => loadExpenses());
+  loadMore.addEventListener('click', () => loadExpenses(true));
   search.addEventListener('input', renderExpenses);
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && hasLoaded) renderDashboard();
+    if (!document.hidden && hasLoaded && !loading && dashboardMonth !== today().slice(0, 7)) loadMonthlyExpenses();
   });
 
   if (SUPABASE_PUBLIC_KEY === 'YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY') {

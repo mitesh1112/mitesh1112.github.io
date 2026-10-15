@@ -146,7 +146,7 @@
               <i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-4 top-4 text-sm text-slate-400" aria-hidden="true"></i>
               <input id="expense-search" type="search" class="field pl-10 text-sm disabled:bg-slate-50" placeholder="Search by person, category, date, or note" aria-describedby="search-help" disabled>
             </div>
-            <p id="search-help" class="mt-2 text-xs text-slate-500">Search person, category, note, or date (YYYY-MM-DD or 15 Oct 2026).</p>
+            <p id="search-help" class="mt-2 text-xs text-slate-500">Search loaded expenses by person, category, note, or date. Use Load more to search older expenses too.</p>
           </div>
           <p id="feed-status" role="status" class="px-6 pt-4 text-xs text-slate-500">Expense data is not connected yet.</p>
           <p id="expense-action-status" role="status" class="px-6 pt-3 text-sm text-slate-600" hidden></p>
@@ -157,6 +157,9 @@
             <span class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-xl text-slate-400" aria-hidden="true"><i class="fa-solid fa-receipt"></i></span>
             <h3 class="text-sm font-semibold">A fresh start for your spending</h3>
             <p class="mx-auto mt-2 max-w-xs text-sm leading-6 text-slate-500">Once connected, your expenses will appear here, one everyday moment at a time.</p>
+          </div>
+          <div class="px-6 pb-6 pt-4">
+            <button id="load-more-expenses" type="button" hidden disabled class="w-full rounded-xl border border-emerald-200 px-4 py-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50">Load more</button>
           </div>
         </section>
       </div>

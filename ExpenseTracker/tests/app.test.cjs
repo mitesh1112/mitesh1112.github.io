@@ -12,6 +12,9 @@ async function boot({ rows = [], userRows = defaultUsers(), userReadError = fals
   const charts = [];
   const inserts = [];
   const deletes = [];
+  const feedRequests = [];
+  const monthlyRequests = [];
+  let failMonthly = false;
   storage ||= new Map(rememberedUser ? [['expense-tracker.active-user', rememberedUser]] : []);
   let confirmDelete = true;
   let deleteMode = 'success';
@@ -55,8 +58,11 @@ async function boot({ rows = [], userRows = defaultUsers(), userReadError = fals
     assert.ok(['users', 'expenses'].includes(table));
     let deleting = false;
     let deleteId;
+    let fields;
+    const filters = [];
     const query = {
-      select() {
+      select(selection) {
+        fields = selection;
         if (!deleting) return query;
         return (async () => {
           deletes.push(deleteId);
@@ -71,16 +77,24 @@ async function boot({ rows = [], userRows = defaultUsers(), userReadError = fals
       delete() { deleting = true; return query; },
       eq(column, value) { assert.equal(column, 'id'); deleteId = value; return query; },
       order() { return query; },
-      async range(start) {
+      gte(column, value) { filters.push(row => row[column] >= value); return query; },
+      lt(column, value) { filters.push(row => row[column] < value); return query; },
+      async range(start, end) {
         if (table === 'users') {
           if (failUserRead) return { error: { code: 'PGRST205' } };
           return { data: userRows.slice(start, start + 2), error: null };
         }
         if (failRead) return { error: { code: '42501' } };
-        // A short server page must not truncate the dataset.
-        return { data: rows.slice(start, start + 2).map(row => ({ ...row,
+        if (fields === 'id,date,amount,category') {
+          monthlyRequests.push({ start, end });
+          if (failMonthly) return { error: { code: '42501' } };
+          assert.equal(filters.length, 2, 'dashboard queries must be restricted to the month');
+          return { data: rows.filter(row => filters.every(filter => filter(row))).slice(start, Math.min(end + 1, start + 2)), error: null };
+        }
+        feedRequests.push({ start, end });
+        return { data: rows.slice(start, end + 1).map(row => ({ ...row,
           user: userRows.find(user => user.id === row.user_id) || null,
-        })), error: null };
+        })), error: null, count: rows.length };
       },
       async insert(payload) {
         inserts.push(payload);
@@ -106,7 +120,7 @@ async function boot({ rows = [], userRows = defaultUsers(), userReadError = fals
   });
   await settle();
   return {
-    nodes, charts, inserts, deletes, storage,
+    nodes, charts, inserts, deletes, storage, feedRequests, monthlyRequests,
     switchUser(value) { nodes['active-user'].value = userRows.find(user => user.name === value)?.id || value; nodes['active-user'].listeners.change(); },
     remove(index = 0) { return nodes['expense-list'].children[index].children[1].children[1].listeners.click(); },
     setDeleteMode(mode) { deleteMode = mode; },
@@ -114,6 +128,8 @@ async function boot({ rows = [], userRows = defaultUsers(), userReadError = fals
     confirmation: () => confirmText,
     filter(value) { nodes['expense-search'].value = value; nodes['expense-search'].listeners.input(); },
     refresh: () => nodes['refresh-expenses'].listeners.click(),
+    loadMore: () => nodes['load-more-expenses'].listeners.click(),
+    setMonthlyError(value) { failMonthly = value; },
     setReadError(value) { failRead = value; },
     setUserReadError(value) { failUserRead = value; },
     setInsertError(value) { failInsert = value; },
@@ -378,4 +394,101 @@ test('removed selection is cleared and old remembered names are upgraded to IDs'
   await app.refresh();
   assert.equal(app.nodes['active-user'].value, '');
   assert.equal(app.nodes['submit-expense'].disabled, true);
+});
+
+const manyExpenses = (count) => Array.from({ length: count }, (_, index) => ({
+  ...expense('2026-10-01', '1.00', 'Other', `Expense ${index}`),
+  id: `expense-${index}`, created_at: `timestamp-${index}`,
+}));
+
+test('feed fetches exactly one page at a time, then hides Load more at the end', async () => {
+  const app = await boot({ rows: manyExpenses(125) });
+  assert.equal(app.nodes['expense-list'].children.length, 50);
+  assert.deepEqual(app.feedRequests, [{ start: 0, end: 49 }]);
+  assert.equal(app.nodes['load-more-expenses'].hidden, false);
+  assert.match(app.nodes['feed-status'].textContent, /50 of 125 expenses loaded/);
+  assert.equal(app.nodes['monthly-total'].textContent, '₹125.00', 'dashboard includes unloaded current-month expenses');
+  const summaryRequests = app.monthlyRequests.length;
+  await app.loadMore();
+  assert.equal(app.nodes['expense-list'].children.length, 100);
+  assert.deepEqual(app.feedRequests.at(-1), { start: 50, end: 99 });
+  await app.loadMore();
+  assert.equal(app.nodes['expense-list'].children.length, 125);
+  assert.deepEqual(app.feedRequests.at(-1), { start: 100, end: 149 });
+  assert.equal(app.nodes['load-more-expenses'].hidden, true);
+  assert.equal(app.monthlyRequests.length, summaryRequests, 'loading more does not reload the dashboard');
+  await app.loadMore();
+  assert.equal(app.feedRequests.length, 3);
+});
+
+test('an exact page and an empty dataset do not offer unnecessary Load more', async () => {
+  for (const count of [0, 50]) {
+    const app = await boot({ rows: manyExpenses(count) });
+    assert.equal(app.nodes['expense-list'].children.length, count);
+    assert.equal(app.nodes['load-more-expenses'].hidden, true);
+    assert.equal(app.feedRequests.length, 1);
+  }
+});
+
+test('failed next page retains the feed and retries from the same offset', async () => {
+  const app = await boot({ rows: manyExpenses(75) });
+  app.setReadError(true);
+  await app.loadMore();
+  assert.equal(app.nodes['expense-list'].children.length, 50);
+  assert.equal(app.nodes['load-more-expenses'].disabled, false);
+  assert.match(app.nodes['feed-status'].textContent, /Use Load more to retry/);
+  app.setReadError(false);
+  const pending = app.loadMore();
+  await app.loadMore();
+  await pending;
+  assert.equal(app.nodes['expense-list'].children.length, 75);
+  assert.deepEqual(app.feedRequests.at(-1), { start: 50, end: 99 });
+});
+
+test('search applies to newly loaded pages and refresh resets the feed to 50', async () => {
+  const app = await boot({ rows: manyExpenses(75) });
+  app.filter('Expense 74');
+  assert.equal(app.nodes['expense-list'].children.length, 0);
+  assert.equal(app.nodes['load-more-expenses'].hidden, false);
+  await app.loadMore();
+  assert.equal(app.nodes['expense-list'].children.length, 1);
+  assert.equal(app.nodes['expense-search'].value, 'Expense 74');
+  await app.refresh();
+  assert.equal(app.nodes['expense-list'].children.length, 0);
+  assert.deepEqual(app.feedRequests.at(-1), { start: 0, end: 49 });
+  assert.equal(app.nodes['load-more-expenses'].hidden, false);
+});
+
+test('deleting a loaded row adjusts the next offset so the following row is not skipped', async () => {
+  const app = await boot({ rows: manyExpenses(75) });
+  await app.remove();
+  assert.equal(app.nodes['expense-list'].children.length, 49);
+  await app.loadMore();
+  assert.deepEqual(app.feedRequests.at(-1), { start: 49, end: 98 });
+  assert.equal(app.nodes['expense-list'].children.length, 74);
+  const notes = app.nodes['expense-list'].children.map(row => row.children[0].children[2].textContent);
+  assert.ok(notes.includes('Expense 50'));
+  assert.equal(new Set(notes).size, 74);
+  assert.equal(app.nodes['monthly-total'].textContent, '₹74.00');
+});
+
+test('saving after loading more resets to the newest 50 expenses', async () => {
+  const app = await boot({ rows: manyExpenses(75) });
+  await app.loadMore();
+  await app.save();
+  assert.equal(app.nodes['expense-list'].children.length, 50);
+  assert.deepEqual(app.feedRequests.at(-1), { start: 0, end: 49 });
+  assert.equal(app.nodes['monthly-total'].textContent, '₹80.00');
+});
+
+test('dashboard failure leaves the feed usable and can be recovered by refresh', async () => {
+  const app = await boot({ rows: manyExpenses(75) });
+  app.setMonthlyError(true);
+  await app.refresh();
+  assert.equal(app.nodes['expense-list'].children.length, 50);
+  assert.match(app.nodes['monthly-summary'].textContent, /Could not refresh/);
+  assert.equal(app.nodes['monthly-total'].textContent, '₹75.00');
+  app.setMonthlyError(false);
+  await app.refresh();
+  assert.doesNotMatch(app.nodes['monthly-summary'].textContent, /Could not refresh/);
 });
