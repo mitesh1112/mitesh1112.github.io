@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A simple personal expense tracker. Record everyday spending and see where your money goes.">
+  <meta name="color-scheme" content="light">
+  <title>Expense Tracker · Your daily spending, in view</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  <script defer src="./app.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+  <style>
+    [hidden] { display: none !important; }
+    input, select, textarea { font: inherit; }
+    :focus-visible { outline: 3px solid #059669; outline-offset: 3px; }
+    .field { width: 100%; border: 1px solid #cbd5e1; border-radius: 0.75rem; background: #fff; padding: 0.75rem 0.875rem; color: #0f172a; }
+    .field:focus { border-color: #059669; }
+    .field::placeholder { color: #64748b; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased">
+  <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:rounded-lg focus:bg-white focus:p-4">Skip to content</a>
+
+  <header class="border-b border-slate-200 bg-white">
+    <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-5 py-5 sm:px-8">
+      <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-700 text-lg text-white" aria-hidden="true"><i class="fa-solid fa-wallet"></i></span>
+      <div>
+        <p class="font-bold tracking-tight">Expense Tracker</p>
+        <p class="text-xs text-slate-500">A little clarity, every day.</p>
+      </div>
+      <div class="ml-auto w-full sm:w-52">
+        <label for="active-user" class="mb-1 block text-xs font-semibold text-slate-600">Adding expenses as</label>
+        <select id="active-user" class="field text-sm" aria-describedby="user-help" disabled>
+          <option value="">Loading users…</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="mx-auto max-w-6xl px-5 py-8 sm:px-8 sm:py-12">
+    <div class="mb-8">
+      <p class="mb-2 text-xs font-bold uppercase tracking-widest text-emerald-700">Your money, at a glance</p>
+      <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">Small expenses. Clearer picture.</h1>
+      <p class="mt-3 max-w-xl text-sm leading-6 text-slate-600">Keep track of the everyday and make room for what matters.</p>
+    </div>
+
+    <section aria-label="Setup status" class="mb-8 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+      <i class="fa-solid fa-circle-info mt-0.5" aria-hidden="true"></i>
+      <p id="setup-status" role="status">Connecting to Supabase…</p>
+    </section>
+    <p id="user-help" class="-mt-4 mb-6 text-xs leading-5 text-slate-500">Choose your name before saving. This browser remembers your selection. Everyone shares the feed and dashboard; anyone with access can delete an expense.</p>
+    <p id="user-status" role="status" class="mb-4 text-sm text-emerald-700"></p>
+
+    <div class="grid items-start gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
+      <section aria-labelledby="entry-heading" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="mb-6 flex items-center gap-3">
+          <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700" aria-hidden="true"><i class="fa-solid fa-plus"></i></span>
+          <div>
+            <h2 id="entry-heading" class="text-lg font-bold">Add an expense</h2>
+            <p class="text-xs text-slate-500">The little things add up.</p>
+          </div>
+        </div>
+        <form id="expense-form" class="space-y-5" aria-describedby="form-status">
+          <div>
+            <label for="expense-date" class="mb-2 block text-sm font-semibold">Date <span class="text-emerald-700" aria-hidden="true">*</span></label>
+            <input id="expense-date" name="date" type="date" class="field" required>
+          </div>
+          <div>
+            <label for="expense-amount" class="mb-2 block text-sm font-semibold">Amount (INR) <span class="text-emerald-700" aria-hidden="true">*</span></label>
+            <input id="expense-amount" name="amount" type="number" class="field" min="0.01" max="9999999999.99" step="0.01" inputmode="decimal" placeholder="0.00" required>
+          </div>
+          <div>
+            <label for="expense-category" class="mb-2 block text-sm font-semibold">Category <span class="text-emerald-700" aria-hidden="true">*</span></label>
+            <select id="expense-category" name="category" class="field" required>
+              <option value="" disabled selected>Choose a category</option>
+              <option value="Apparels">Apparels</option>
+              <option value="Donation">Donation</option>
+              <option value="Entertainment">Entertainment</option>
+              <option value="Food">Food</option>
+              <option value="Fuel">Fuel</option>
+              <option value="Grocery">Grocery</option>
+              <option value="Grooming/Beauty Parlour">Grooming/Beauty Parlour</option>
+              <option value="Home">Home</option>
+              <option value="Insurance">Insurance</option>
+              <option value="Medicine">Medicine</option>
+              <option value="Mitesh Activa">Mitesh Activa</option>
+              <option value="Mobile Recharge">Mobile Recharge</option>
+              <option value="Other">Other</option>
+              <option value="PGVCL">PGVCL</option>
+              <option value="School">School</option>
+              <option value="Shine">Shine</option>
+              <option value="Tution">Tution</option>
+            </select>
+          </div>
+          <div>
+            <label for="expense-note" class="mb-2 block text-sm font-semibold">Note <span class="font-normal text-slate-500">(optional)</span></label>
+            <textarea id="expense-note" name="note" rows="3" maxlength="2000" class="field resize-y" placeholder="What was it for?"></textarea>
+          </div>
+          <button id="submit-expense" type="submit" disabled class="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i> Save expense
+          </button>
+          <p id="form-status" role="status" class="text-xs leading-5 text-slate-500">Saving is not connected yet. Fields marked * are required.</p>
+        </form>
+      </section>
+
+      <div class="min-w-0 space-y-6">
+        <section id="dashboard" aria-labelledby="dashboard-heading">
+          <h2 id="dashboard-heading" class="mb-3 text-sm font-semibold text-slate-600">Monthly overview</h2>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="flex flex-col justify-between rounded-2xl bg-emerald-900 p-6 text-white">
+              <div class="flex items-center justify-between gap-3">
+                <p class="text-sm font-medium text-emerald-100">Total spent this month</p>
+                <i class="fa-solid fa-arrow-trend-up text-emerald-300" aria-hidden="true"></i>
+              </div>
+              <div class="py-6">
+                <p id="monthly-total" class="break-words text-3xl font-bold tracking-tight" aria-live="polite" aria-label="Monthly total unavailable">—</p>
+                <p id="monthly-period" class="mt-2 text-xs text-emerald-100">INR · current calendar month</p>
+              </div>
+              <p id="monthly-summary" class="text-xs leading-5 text-emerald-100">Your monthly summary will appear here.</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h3 class="text-sm font-semibold">Spending by category</h3>
+              <div id="category-chart-container" class="relative mt-4 h-44">
+                <canvas id="category-chart" role="img" aria-label="Monthly spending by category" aria-describedby="category-breakdown" hidden>Category amounts and percentages are listed below.</canvas>
+                <div id="chart-empty-state" class="flex h-full flex-col items-center justify-center gap-3 text-center">
+                  <div class="flex h-20 w-20 items-center justify-center rounded-full border-[12px] border-slate-100 text-slate-400" aria-hidden="true"><i class="fa-solid fa-chart-pie"></i></div>
+                  <p class="max-w-44 text-xs leading-5 text-slate-500">Your category breakdown will appear here.</p>
+                </div>
+              </div>
+              <ul id="category-breakdown" class="mt-4 space-y-2" aria-label="Monthly category totals"></ul>
+              <p class="mt-3 text-xs leading-5 text-slate-500">Full month · unaffected by search</p>
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="feed-heading" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div class="border-b border-slate-100 p-5 sm:p-6">
+            <div class="mb-5 flex items-center justify-between gap-3">
+              <h2 id="feed-heading" class="text-lg font-bold">Recent expenses</h2>
+              <button id="refresh-expenses" type="button" disabled class="rounded-lg px-2 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50">Refresh expenses</button>
+            </div>
+            <label for="expense-search" class="sr-only">Search expenses by person, category, date, or note</label>
+            <div class="relative">
+              <i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-4 top-4 text-sm text-slate-400" aria-hidden="true"></i>
+              <input id="expense-search" type="search" class="field pl-10 text-sm disabled:bg-slate-50" placeholder="Search by person, category, date, or note" aria-describedby="search-help" disabled>
+            </div>
+            <p id="search-help" class="mt-2 text-xs text-slate-500">Search person, category, note, or date (YYYY-MM-DD or 15 Oct 2026).</p>
+          </div>
+          <p id="feed-status" role="status" class="px-6 pt-4 text-xs text-slate-500">Expense data is not connected yet.</p>
+          <p id="expense-action-status" role="status" class="px-6 pt-3 text-sm text-slate-600" hidden></p>
+          <ul id="expense-list" class="divide-y divide-slate-100" aria-label="Expenses">
+            <!-- Expense entries are rendered safely with textContent. -->
+          </ul>
+          <div id="feed-empty-state" class="px-6 py-12 text-center">
+            <span class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-xl text-slate-400" aria-hidden="true"><i class="fa-solid fa-receipt"></i></span>
+            <h3 class="text-sm font-semibold">A fresh start for your spending</h3>
+            <p class="mx-auto mt-2 max-w-xs text-sm leading-6 text-slate-500">Once connected, your expenses will appear here, one everyday moment at a time.</p>
+          </div>
+        </section>
+      </div>
+    </div>
+    <footer class="mt-10 border-t border-slate-200 pt-5 text-center text-xs text-slate-500">A simple space to keep your spending in perspective.</footer>
+  </main>
+  <noscript><p class="mx-auto max-w-6xl px-5 pb-6 text-sm text-amber-900">JavaScript must be enabled to save and view expenses when the app is connected.</p></noscript>
+</body>
+</html>
