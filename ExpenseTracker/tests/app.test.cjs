@@ -37,7 +37,7 @@ async function boot({ rows = [], userRows = defaultUsers(), userReadError = fals
     reportValidity() { return true; }
     focus() {}
     reset() {
-      for (const id of ['expense-date', 'expense-amount', 'expense-category', 'expense-note']) nodes[id].value = '';
+      for (const id of ['expense-date', 'expense-amount', 'expense-category', 'expense-payment-method', 'expense-note']) nodes[id].value = '';
     }
   }
   class FakeChart {
@@ -92,6 +92,7 @@ async function boot({ rows = [], userRows = defaultUsers(), userReadError = fals
           return { data: rows.filter(row => filters.every(filter => filter(row))).slice(start, Math.min(end + 1, start + 2)), error: null };
         }
         feedRequests.push({ start, end });
+        assert.ok(fields.split(',').includes('payment_method'), 'feed must fetch saved payment methods');
         return { data: rows.slice(start, end + 1).map(row => ({ ...row,
           user: userRows.find(user => user.id === row.user_id) || null,
         })), error: null, count: rows.length };
@@ -134,10 +135,11 @@ async function boot({ rows = [], userRows = defaultUsers(), userReadError = fals
     setUserReadError(value) { failUserRead = value; },
     setInsertError(value) { failInsert = value; },
     setRefreshErrorAfterInsert() { failAfterInsert = true; },
-    save() {
+    save(paymentMethod = 'UPI') {
       nodes['expense-date'].value = '2026-10-15';
       nodes['expense-amount'].value = '5.00';
       nodes['expense-category'].value = 'Groceries';
+      nodes['expense-payment-method'].value = paymentMethod;
       nodes['expense-note'].value = '  Milk  ';
       return nodes['expense-form'].listeners.submit({ preventDefault() {} });
     },
@@ -145,6 +147,45 @@ async function boot({ rows = [], userRows = defaultUsers(), userReadError = fals
 }
 
 const expense = (date, amount, category, note = '') => ({ id: date + amount, date, amount, category, note, created_at: '' });
+
+test('each payment method is saved, displayed and searchable, then cleared for the next entry', async () => {
+  for (const method of ['UPI', 'Cash', 'Credit Card', 'Net Banking']) {
+    const app = await boot();
+    const pending = app.save(method);
+    assert.equal(app.nodes['expense-payment-method'].disabled, true);
+    await pending;
+    assert.equal(app.inserts[0].payment_method, method);
+    const details = app.nodes['expense-list'].children[0].children[0].children;
+    assert.ok(details.some(node => node.textContent === `Payment: ${method}`));
+    assert.equal(app.nodes['expense-payment-method'].value, '');
+    assert.equal(app.nodes['expense-payment-method'].disabled, false);
+    app.filter(method.toLowerCase());
+    assert.equal(app.nodes['expense-list'].children.length, 1);
+    app.filter('unmatched payment');
+    assert.equal(app.nodes['expense-list'].children.length, 0);
+  }
+});
+
+test('missing and unsupported payment methods prevent inserts and preserve the draft', async () => {
+  const app = await boot();
+  for (const method of ['', 'Cheque']) {
+    await app.save(method);
+    assert.equal(app.inserts.length, 0);
+    assert.match(app.nodes['form-status'].textContent, /Choose a payment method/);
+    assert.equal(app.nodes['expense-note'].value, '  Milk  ');
+  }
+});
+
+test('legacy payment methods remain unknown and failed saves retain the selected method', async () => {
+  const app = await boot({ rows: [expense('2026-10-01', '2.00', 'Other')] });
+  const details = app.nodes['expense-list'].children[0].children[0].children;
+  assert.ok(details.some(node => node.textContent === 'Payment: Not recorded'));
+  app.setInsertError(true);
+  await app.save('Net Banking');
+  assert.equal(app.nodes['expense-payment-method'].value, 'Net Banking');
+  assert.equal(app.nodes['expense-payment-method'].disabled, false);
+  assert.match(app.nodes['form-status'].textContent, /entries are preserved/);
+});
 
 test('search matches category, note, ISO date and displayed date without changing monthly totals', async () => {
   const app = await boot({ rows: [

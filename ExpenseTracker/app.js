@@ -11,6 +11,8 @@
   const dateInput = byId('expense-date');
   const amountInput = byId('expense-amount');
   const categoryInput = byId('expense-category');
+  const paymentMethodInput = byId('expense-payment-method');
+  const PAYMENT_METHODS = ['UPI', 'Cash', 'Credit Card', 'Net Banking'];
   const noteInput = byId('expense-note');
   const submit = byId('submit-expense');
   const refresh = byId('refresh-expenses');
@@ -67,7 +69,7 @@
   }
 
   function errorMessage(error) {
-    if (['42703', 'PGRST204', 'PGRST200', 'PGRST201'].includes(error?.code)) return 'Run supabase/03_users_table.sql after the earlier migrations in the Supabase SQL Editor, then refresh.';
+    if (['42703', 'PGRST204', 'PGRST200', 'PGRST201'].includes(error?.code)) return 'Ensure supabase/03_users_table.sql and supabase/05_payment_method.sql have been applied after the earlier schema migrations in the Supabase SQL Editor, then refresh.';
     if (error?.code === '42501') return 'Access denied. Check the grants and RLS policies, including supabase/02_users_and_delete.sql.';
     if (error?.code === 'PGRST205' || error?.code === '42P01') return 'A required table was not found. Run the SQL migrations through supabase/03_users_table.sql in order.';
     if (error?.code === '23503') return 'The selected user no longer exists. Refresh the user list and choose a name again.';
@@ -83,7 +85,7 @@
     activeUser.disabled = !usersReady || !users.length || saving || loading || deletingId !== null;
     for (const button of deleteButtons) button.disabled = !client || saving || loading || deletingId !== null;
     search.disabled = !hasLoaded;
-    [dateInput, amountInput, categoryInput, noteInput].forEach((input) => {
+    [dateInput, amountInput, categoryInput, paymentMethodInput, noteInput].forEach((input) => {
       input.disabled = saving;
     });
     submit.textContent = saving ? 'Saving…' : 'Save expense';
@@ -160,7 +162,7 @@
     const filtered = expenses.filter((expense) => {
       const [year, month, day] = expense.date.split('-').map(Number);
       const displayDate = dateFormat.format(new Date(year, month - 1, day));
-      return [expense.category, expense.note || '', expense.date, displayDate, expenseUserName(expense)]
+      return [expense.category, expense.payment_method || 'Not recorded', expense.note || '', expense.date, displayDate, expenseUserName(expense)]
         .some((value) => value.toLocaleLowerCase('en-IN').includes(query));
     });
     const fragment = document.createDocumentFragment();
@@ -177,6 +179,7 @@
       details.append(date);
       if (expense.note) details.append(element('p',
         'mt-2 whitespace-pre-wrap break-words text-sm text-slate-600', expense.note));
+      details.append(element('p', 'mt-2 text-xs text-slate-500', `Payment: ${expense.payment_method || 'Not recorded'}`));
       details.append(element('p', 'mt-2 text-xs font-medium text-emerald-700', `Added by: ${expenseUserName(expense)}`));
       const actions = element('div', 'flex shrink-0 flex-col items-end gap-2');
       const remove = element('button', 'rounded-lg px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50', deletingId === expense.id ? 'Deleting…' : 'Delete');
@@ -192,7 +195,7 @@
     emptyState.hidden = filtered.length > 0 || !hasLoaded;
     emptyState.querySelector('h3').textContent = query && expenses.length ? 'No matching expenses' : hasMore ? 'More expenses available' : 'No expenses yet';
     emptyState.querySelector('p').textContent = query && expenses.length
-      ? 'Try another person, category, date, or note, or clear your search to see all expenses.'
+      ? 'Try another person, category, payment method, date, or note, or clear your search to see all expenses.'
       : hasMore ? 'Use Load more to see older expenses.' : 'Add your first expense using the form to start tracking your spending.';
     const loaded = totalExpenses === null ? `${expenses.length} expenses loaded` : `${expenses.length} of ${totalExpenses} expenses loaded`;
     const count = query ? `${filtered.length} matches in ${expenses.length} loaded expenses` : loaded;
@@ -317,7 +320,7 @@
       if (!append) await loadUsers();
       const offset = append ? nextOffset : 0;
       const { data, error, count } = await client.from('expenses')
-        .select('id,date,amount,category,note,created_at,user_id,user:users!expenses_user_id_fkey(name)', { count: 'exact' })
+        .select('id,date,amount,category,payment_method,note,created_at,user_id,user:users!expenses_user_id_fkey(name)', { count: 'exact' })
         .order('date', { ascending: false })
         .order('created_at', { ascending: false })
         .order('id', { ascending: false })
@@ -353,10 +356,16 @@
       return;
     }
     if (!form.reportValidity()) return;
+    if (!PAYMENT_METHODS.includes(paymentMethodInput.value)) {
+      message(formStatus, 'Choose a payment method before saving.', true);
+      paymentMethodInput.focus();
+      return;
+    }
     const payload = {
       date: dateInput.value,
       amount: amountInput.value,
       category: categoryInput.value.trim(),
+      payment_method: paymentMethodInput.value,
       note: noteInput.value.trim(),
       user_id: selectedUser,
     };
