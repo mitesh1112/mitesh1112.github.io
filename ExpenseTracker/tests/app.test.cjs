@@ -66,6 +66,7 @@ async function boot({ rows = [], userRows = defaultUsers(), userReadError = fals
     let deleteId;
     let fields;
     const filters = [];
+    const orders = [];
     const query = {
       select(selection) {
         fields = selection;
@@ -86,7 +87,7 @@ async function boot({ rows = [], userRows = defaultUsers(), userReadError = fals
         else filters.push(row => row[column] === value);
         return query;
       },
-      order() { return query; },
+      order(column, { ascending }) { orders.push({ column, ascending }); return query; },
       gte(column, value) { filters.push(row => row[column] >= value); return query; },
       lt(column, value) { filters.push(row => row[column] < value); return query; },
       lte(column, value) { filters.push(row => row[column] <= value); return query; },
@@ -96,10 +97,19 @@ async function boot({ rows = [], userRows = defaultUsers(), userReadError = fals
           return { data: userRows.slice(start, start + 2), error: null };
         }
         if (failRead) return { error: { code: '42501' } };
-        if (fields === 'id,amount') {
+        if (fields.includes('payment_method') && filters.length >= 2) {
           totalsRequests.push({ start, end });
           if (failTotals) return { error: { code: '42501' } };
-          const data = rows.filter(row => filters.every(filter => filter(row))).slice(start, start + 2);
+          const data = rows.filter(row => filters.every(filter => filter(row)))
+            .sort((a, b) => {
+              for (const { column, ascending } of orders) {
+                const comparison = String(a[column] || '').localeCompare(String(b[column] || ''));
+                if (comparison) return ascending ? comparison : -comparison;
+              }
+              return 0;
+            }).slice(start, start + 2).map(row => ({ ...row,
+              user: userRows.find(user => user.id === row.user_id) || null,
+            }));
           if (pauseTotals) {
             pauseTotals = false;
             await new Promise(resolve => { resumeTotals = resolve; });
@@ -577,6 +587,9 @@ test('totals modal defaults to selected user and local month-to-date with inclus
   assert.equal(app.nodes['totals-amount'].textContent, '₹0.30');
   assert.match(app.nodes['totals-status'].textContent, /2 expenses/);
   assert.match(app.nodes['totals-period'].textContent, /Mitesh.*1 Oct 2026 to 15 Oct 2026/);
+  assert.equal(app.nodes['totals-expense-list'].children.length, 2);
+  assert.equal(app.nodes['totals-expense-list'].children[0].children[0].children[1].dateTime, '2026-10-15');
+  assert.equal(app.nodes['totals-expense-list'].children[1].children[0].children[1].dateTime, '2026-10-01');
   app.closeTotals();
   assert.equal(app.nodes['totals-dialog'].open, false);
 });
@@ -592,11 +605,13 @@ test('custom totals span months and include all pages and unattributed entries f
   await app.applyTotals();
   assert.equal(app.nodes['totals-amount'].textContent, '₹77.25');
   assert.match(app.nodes['totals-status'].textContent, /76 expenses/);
+  assert.equal(app.nodes['totals-expense-list'].children.length, 76);
   assert.equal(app.nodes['expense-list'].children.length, 50);
   assert.ok(app.totalsRequests.some(request => request.start === 76));
   app.nodes['totals-user'].value = 'id-Neha';
   await app.nodes['totals-user'].listeners.change();
   assert.equal(app.nodes['totals-amount'].textContent, '₹75.00');
+  assert.equal(app.nodes['totals-expense-list'].children.length, 75);
 });
 
 test('invalid ranges avoid queries and empty ranges show zero', async () => {
@@ -604,6 +619,8 @@ test('invalid ranges avoid queries and empty ranges show zero', async () => {
   await app.openTotals();
   assert.equal(app.nodes['totals-amount'].textContent, '₹0.00');
   assert.match(app.nodes['totals-status'].textContent, /No expenses found/);
+  assert.equal(app.nodes['totals-expense-list'].children.length, 0);
+  assert.equal(app.nodes['totals-expenses'].hidden, true);
   const count = app.totalsRequests.length;
   app.nodes['totals-from'].value = '2026-10-16';
   await app.applyTotals();
@@ -622,6 +639,7 @@ test('failed totals clear previous amounts and can be retried', async () => {
   await app.applyTotals();
   assert.equal(app.nodes['totals-amount'].textContent, '—');
   assert.match(app.nodes['totals-status'].textContent, /Could not load total/);
+  assert.equal(app.nodes['totals-expense-list'].children.length, 0);
   assert.equal(app.nodes['totals-result'].attributes['aria-busy'], 'false');
   app.setTotalsError(false);
   await app.applyTotals();
@@ -642,6 +660,30 @@ test('older in-flight totals cannot overwrite changed filters or a reopened moda
   app.switchUser('Mitesh');
   await app.openTotals();
   assert.equal(app.nodes['totals-amount'].textContent, '₹1.00');
+  assert.equal(app.nodes['totals-expense-list'].children.length, 1);
+});
+
+test('modal expense details render safely with amounts, notes, payment methods and attribution', async () => {
+  const app = await boot({ rememberedUser: '', rows: [
+    { ...expense('2026-10-15', '12.50', '<b>Food</b>', '<script>note</script>'), payment_method: 'Cash', user_id: 'id-Neha' },
+    expense('2026-10-14', '2.00', 'Other'),
+  ] });
+  await app.openTotals();
+  const rows = app.nodes['totals-expense-list'].children;
+  assert.equal(rows.length, 2);
+  const details = rows[0].children[0].children;
+  assert.equal(details[0].textContent, '<b>Food</b>');
+  assert.equal(details[1].textContent, '15 Oct 2026');
+  assert.equal(details[2].textContent, '<script>note</script>');
+  assert.equal(details[3].textContent, 'Payment: Cash');
+  assert.equal(details[4].textContent, 'Added by: Neha');
+  assert.equal(rows[0].children[1].textContent, '₹12.50');
+  assert.equal(rows[1].children[0].children.at(-1).textContent, 'Added by: Not recorded');
+  assert.equal(rows[1].children[0].children.at(-2).textContent, 'Payment: Not recorded');
+  app.setTotalsError(true);
+  await app.applyTotals();
+  assert.equal(app.nodes['totals-expense-list'].children.length, 0);
+  assert.equal(app.nodes['totals-expenses'].hidden, true);
 });
 
 test('month-to-date on New Year uses local January boundaries', async () => {

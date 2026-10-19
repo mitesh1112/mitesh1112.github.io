@@ -121,7 +121,7 @@
         <section id="dashboard" aria-labelledby="dashboard-heading">
           <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
             <h2 id="dashboard-heading" class="text-sm font-semibold text-slate-600">Monthly overview</h2>
-            <button id="open-totals" type="button" aria-haspopup="dialog" aria-controls="totals-dialog" disabled class="rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50">View totals</button>
+            <button id="open-totals" type="button" aria-haspopup="dialog" aria-controls="totals-dialog" disabled class="rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50">User Totals</button>
           </div>
           <div class="grid gap-4 sm:grid-cols-2">
             <div class="flex flex-col justify-between rounded-2xl bg-emerald-900 p-6 text-white">
@@ -213,6 +213,11 @@
       <p id="totals-amount" class="mt-2 break-words text-3xl font-bold text-emerald-900">—</p>
       <p id="totals-status" role="status" class="mt-2 text-sm text-slate-600"></p>
     </div>
+    <section id="totals-expenses" aria-labelledby="totals-expenses-heading" class="mt-5" hidden>
+      <h3 id="totals-expenses-heading" class="text-sm font-semibold">Expenses in this date range</h3>
+      <p class="mt-1 text-xs text-slate-500">Latest date first</p>
+      <ul id="totals-expense-list" class="mt-3 divide-y divide-slate-200" aria-label="Expenses included in the total"></ul>
+    </section>
   </dialog>
 </body>
 </html>

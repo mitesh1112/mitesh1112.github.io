@@ -43,6 +43,8 @@
   const totalsPeriod = byId('totals-period');
   const totalsStatus = byId('totals-status');
   const totalsResult = byId('totals-result');
+  const totalsExpenses = byId('totals-expenses');
+  const totalsExpenseList = byId('totals-expense-list');
   let totalsRequest = 0;
   const USER_STORAGE_KEY = 'expense-tracker.active-user';
   let users = [];
@@ -298,11 +300,34 @@
     totalsFrom.value = `${totalsTo.value.slice(0, 7)}-01`;
   }
 
+  function renderTotalsExpenses(rows) {
+    const fragment = document.createDocumentFragment();
+    for (const expense of rows) {
+      const row = element('li', 'flex items-start justify-between gap-4 py-4');
+      const details = element('div', 'min-w-0');
+      details.append(element('p', 'break-words text-sm font-semibold', expense.category));
+      const [year, month, day] = expense.date.split('-').map(Number);
+      const date = element('time', 'mt-1 block text-xs text-slate-500',
+        dateFormat.format(new Date(year, month - 1, day)));
+      date.dateTime = expense.date;
+      details.append(date);
+      if (expense.note) details.append(element('p',
+        'mt-2 whitespace-pre-wrap break-words text-sm text-slate-600', expense.note));
+      details.append(element('p', 'mt-2 text-xs text-slate-500', `Payment: ${expense.payment_method || 'Not recorded'}`));
+      details.append(element('p', 'mt-2 break-words text-xs font-medium text-emerald-700', `Added by: ${expenseUserName(expense)}`));
+      row.append(details, element('p', 'shrink-0 text-sm font-bold tabular-nums', money.format(Number(expense.amount))));
+      fragment.append(row);
+    }
+    totalsExpenseList.replaceChildren(fragment);
+    totalsExpenses.hidden = rows.length === 0;
+  }
+
   async function loadTotals(event) {
     event?.preventDefault();
     const request = ++totalsRequest;
     totalsAmount.textContent = '—';
     totalsPeriod.textContent = '';
+    renderTotalsExpenses([]);
     totalsResult.setAttribute('aria-busy', 'false');
     if (!client) return;
     if (!totalsForm.reportValidity()) {
@@ -329,27 +354,33 @@
       return dateFormat.format(date);
     };
     totalsPeriod.textContent = `${person?.name || 'Everyone'} · ${displayDate(from)} to ${displayDate(to)}`;
-    message(totalsStatus, 'Loading total…');
+    message(totalsStatus, 'Loading total and expenses…');
     totalsResult.setAttribute('aria-busy', 'true');
     try {
       let offset = 0;
       let totalPaise = 0;
+      const rows = [];
       while (true) {
-        let query = client.from('expenses').select('id,amount')
+        let query = client.from('expenses')
+          .select('id,date,amount,category,payment_method,note,created_at,user_id,user:users!expenses_user_id_fkey(name)')
           .gte('date', from).lte('date', to);
         if (userId) query = query.eq('user_id', userId);
-        const { data, error } = await query.order('id', { ascending: true }).range(offset, offset + 499);
+        const { data, error } = await query.order('date', { ascending: false })
+          .order('created_at', { ascending: false }).order('id', { ascending: false })
+          .range(offset, offset + 499);
         if (request !== totalsRequest) return;
         if (error) throw error;
         if (!data.length) break;
+        rows.push(...data);
         for (const expense of data) totalPaise += Math.round(Number(expense.amount) * 100);
         offset += data.length;
       }
       totalsAmount.textContent = money.format(totalPaise / 100);
+      renderTotalsExpenses(rows);
       message(totalsStatus, `${offset} expense${offset === 1 ? '' : 's'} in this date range.${offset ? '' : ' No expenses found.'}`);
     } catch (error) {
       if (request !== totalsRequest) return;
-      message(totalsStatus, `Could not load total. ${errorMessage(error)} Select Show total to retry.`, true);
+      message(totalsStatus, `Could not load total and expenses. ${errorMessage(error)} Select Show total to retry.`, true);
     } finally {
       if (request === totalsRequest) totalsResult.setAttribute('aria-busy', 'false');
     }
