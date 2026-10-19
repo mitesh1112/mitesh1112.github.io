@@ -18,6 +18,8 @@
     .field { width: 100%; border: 1px solid #cbd5e1; border-radius: 0.75rem; background: #fff; padding: 0.75rem 0.875rem; color: #0f172a; }
     .field:focus { border-color: #059669; }
     .field::placeholder { color: #64748b; }
+    dialog::backdrop { background: rgb(15 23 42 / 55%); }
+    #totals-dialog { width: min(36rem, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); overflow-y: auto; }
   </style>
 </head>
 <body class="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased">
@@ -117,7 +119,10 @@
 
       <div class="min-w-0 space-y-6">
         <section id="dashboard" aria-labelledby="dashboard-heading">
-          <h2 id="dashboard-heading" class="mb-3 text-sm font-semibold text-slate-600">Monthly overview</h2>
+          <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <h2 id="dashboard-heading" class="text-sm font-semibold text-slate-600">Monthly overview</h2>
+            <button id="open-totals" type="button" aria-haspopup="dialog" aria-controls="totals-dialog" disabled class="rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50">View totals</button>
+          </div>
           <div class="grid gap-4 sm:grid-cols-2">
             <div class="flex flex-col justify-between rounded-2xl bg-emerald-900 p-6 text-white">
               <div class="flex items-center justify-between gap-3">
@@ -177,5 +182,37 @@
     <footer class="mt-10 border-t border-slate-200 pt-5 text-center text-xs text-slate-500">A simple space to keep your spending in perspective.</footer>
   </main>
   <noscript><p class="mx-auto max-w-6xl px-5 pb-6 text-sm text-amber-900">JavaScript must be enabled to save and view expenses when the app is connected.</p></noscript>
+  <dialog id="totals-dialog" aria-labelledby="totals-heading" aria-describedby="totals-help" class="rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-xl">
+    <div class="mb-3 flex items-center justify-between gap-4">
+      <h2 id="totals-heading" class="text-xl font-bold">Expense totals</h2>
+      <button id="close-totals" type="button" class="rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100" autofocus>Close</button>
+    </div>
+    <p id="totals-help" class="mb-5 text-sm text-slate-500">Starts with month-to-date. Totals use the expense date and include both From and To dates.</p>
+    <form id="totals-form" class="space-y-4">
+      <div>
+        <label for="totals-user" class="mb-2 block text-sm font-semibold">Entered by</label>
+        <select id="totals-user" class="field"><option value="">Everyone</option></select>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label for="totals-from" class="mb-2 block text-sm font-semibold">From</label>
+          <input id="totals-from" type="date" class="field" min="0001-01-01" max="9999-12-31" required>
+        </div>
+        <div>
+          <label for="totals-to" class="mb-2 block text-sm font-semibold">To</label>
+          <input id="totals-to" type="date" class="field" min="0001-01-01" max="9999-12-31" required>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <button id="apply-totals" type="submit" class="rounded-xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">Show total</button>
+        <button id="reset-totals" type="button" class="rounded-xl border border-emerald-200 px-4 py-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">Month to date</button>
+      </div>
+    </form>
+    <div id="totals-result" class="mt-5 rounded-xl bg-emerald-50 p-5" aria-busy="false">
+      <p id="totals-period" class="text-sm text-slate-600"></p>
+      <p id="totals-amount" class="mt-2 break-words text-3xl font-bold text-emerald-900">—</p>
+      <p id="totals-status" role="status" class="mt-2 text-sm text-slate-600"></p>
+    </div>
+  </dialog>
 </body>
 </html>

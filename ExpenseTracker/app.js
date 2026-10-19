@@ -33,6 +33,17 @@
   const activeUser = byId('active-user');
   const userStatus = byId('user-status');
   const actionStatus = byId('expense-action-status');
+  const openTotals = byId('open-totals');
+  const totalsDialog = byId('totals-dialog');
+  const totalsForm = byId('totals-form');
+  const totalsUser = byId('totals-user');
+  const totalsFrom = byId('totals-from');
+  const totalsTo = byId('totals-to');
+  const totalsAmount = byId('totals-amount');
+  const totalsPeriod = byId('totals-period');
+  const totalsStatus = byId('totals-status');
+  const totalsResult = byId('totals-result');
+  let totalsRequest = 0;
   const USER_STORAGE_KEY = 'expense-tracker.active-user';
   let users = [];
   let usersReady = false;
@@ -77,6 +88,7 @@
   }
 
   function syncControls() {
+    openTotals.disabled = !client || !usersReady || saving || loading || deletingId !== null;
     submit.disabled = !client || !usersReady || !selectedUser || saving || loading || deletingId !== null;
     refresh.disabled = !client || saving || loading || deletingId !== null;
     loadMore.hidden = !hasLoaded || !hasMore;
@@ -281,6 +293,86 @@
     }
   }
 
+  function resetTotalsDates() {
+    totalsTo.value = today();
+    totalsFrom.value = `${totalsTo.value.slice(0, 7)}-01`;
+  }
+
+  async function loadTotals(event) {
+    event?.preventDefault();
+    const request = ++totalsRequest;
+    totalsAmount.textContent = '—';
+    totalsPeriod.textContent = '';
+    totalsResult.setAttribute('aria-busy', 'false');
+    if (!client) return;
+    if (!totalsForm.reportValidity()) {
+      message(totalsStatus, 'Choose valid From and To dates.', true);
+      return;
+    }
+    const from = totalsFrom.value;
+    const to = totalsTo.value;
+    if (!from || !to || from > to) {
+      message(totalsStatus, 'Choose a From date on or before the To date.', true);
+      totalsFrom.focus();
+      return;
+    }
+    const userId = totalsUser.value;
+    const person = users.find((user) => user.id === userId);
+    if (userId && !person) {
+      message(totalsStatus, 'This user is unavailable. Close the window and refresh expenses.', true);
+      return;
+    }
+    const displayDate = (value) => {
+      const [year, month, day] = value.split('-').map(Number);
+      const date = new Date(0);
+      date.setFullYear(year, month - 1, day);
+      return dateFormat.format(date);
+    };
+    totalsPeriod.textContent = `${person?.name || 'Everyone'} · ${displayDate(from)} to ${displayDate(to)}`;
+    message(totalsStatus, 'Loading total…');
+    totalsResult.setAttribute('aria-busy', 'true');
+    try {
+      let offset = 0;
+      let totalPaise = 0;
+      while (true) {
+        let query = client.from('expenses').select('id,amount')
+          .gte('date', from).lte('date', to);
+        if (userId) query = query.eq('user_id', userId);
+        const { data, error } = await query.order('id', { ascending: true }).range(offset, offset + 499);
+        if (request !== totalsRequest) return;
+        if (error) throw error;
+        if (!data.length) break;
+        for (const expense of data) totalPaise += Math.round(Number(expense.amount) * 100);
+        offset += data.length;
+      }
+      totalsAmount.textContent = money.format(totalPaise / 100);
+      message(totalsStatus, `${offset} expense${offset === 1 ? '' : 's'} in this date range.${offset ? '' : ' No expenses found.'}`);
+    } catch (error) {
+      if (request !== totalsRequest) return;
+      message(totalsStatus, `Could not load total. ${errorMessage(error)} Select Show total to retry.`, true);
+    } finally {
+      if (request === totalsRequest) totalsResult.setAttribute('aria-busy', 'false');
+    }
+  }
+
+  async function showTotals() {
+    if (openTotals.disabled) return;
+    const fragment = document.createDocumentFragment();
+    const everyone = element('option', '', 'Everyone (including unattributed expenses)');
+    everyone.value = '';
+    fragment.append(everyone);
+    for (const user of users) {
+      const option = element('option', '', user.name);
+      option.value = user.id;
+      fragment.append(option);
+    }
+    totalsUser.replaceChildren(fragment);
+    totalsUser.value = selectedUser;
+    resetTotalsDates();
+    totalsDialog.showModal();
+    return loadTotals();
+  }
+
   async function loadMonthlyExpenses() {
     const request = ++monthlyRequest;
     const month = today().slice(0, 7);
@@ -447,6 +539,21 @@
   }
 
   activeUser.addEventListener('change', switchUser);
+  openTotals.addEventListener('click', showTotals);
+  byId('close-totals').addEventListener('click', () => totalsDialog.close());
+  totalsDialog.addEventListener('close', () => {
+    ++totalsRequest;
+    openTotals.focus();
+  });
+  totalsForm.addEventListener('submit', loadTotals);
+  // Invalidate a pending result immediately when its filters change.
+  for (const input of [totalsUser, totalsFrom, totalsTo]) {
+    input.addEventListener('change', loadTotals);
+  }
+  byId('reset-totals').addEventListener('click', () => {
+    resetTotalsDates();
+    return loadTotals();
+  });
 
   dateInput.value = today();
   form.addEventListener('submit', saveExpense);

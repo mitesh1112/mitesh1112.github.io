@@ -14,6 +14,10 @@ async function boot({ rows = [], userRows = defaultUsers(), userReadError = fals
   const deletes = [];
   const feedRequests = [];
   const monthlyRequests = [];
+  const totalsRequests = [];
+  let failTotals = false;
+  let pauseTotals = false;
+  let resumeTotals;
   let failMonthly = false;
   storage ||= new Map(rememberedUser ? [['expense-tracker.active-user', rememberedUser]] : []);
   let confirmDelete = true;
@@ -36,6 +40,8 @@ async function boot({ rows = [], userRows = defaultUsers(), userReadError = fals
     addEventListener(event, callback) { this.listeners[event] = callback; }
     reportValidity() { return true; }
     focus() {}
+    showModal() { this.open = true; }
+    close() { this.open = false; this.listeners.close?.(); }
     reset() {
       for (const id of ['expense-date', 'expense-amount', 'expense-category', 'expense-payment-method', 'expense-note']) nodes[id].value = '';
     }
@@ -75,16 +81,31 @@ async function boot({ rows = [], userRows = defaultUsers(), userReadError = fals
         })();
       },
       delete() { deleting = true; return query; },
-      eq(column, value) { assert.equal(column, 'id'); deleteId = value; return query; },
+      eq(column, value) {
+        if (deleting) { assert.equal(column, 'id'); deleteId = value; }
+        else filters.push(row => row[column] === value);
+        return query;
+      },
       order() { return query; },
       gte(column, value) { filters.push(row => row[column] >= value); return query; },
       lt(column, value) { filters.push(row => row[column] < value); return query; },
+      lte(column, value) { filters.push(row => row[column] <= value); return query; },
       async range(start, end) {
         if (table === 'users') {
           if (failUserRead) return { error: { code: 'PGRST205' } };
           return { data: userRows.slice(start, start + 2), error: null };
         }
         if (failRead) return { error: { code: '42501' } };
+        if (fields === 'id,amount') {
+          totalsRequests.push({ start, end });
+          if (failTotals) return { error: { code: '42501' } };
+          const data = rows.filter(row => filters.every(filter => filter(row))).slice(start, start + 2);
+          if (pauseTotals) {
+            pauseTotals = false;
+            await new Promise(resolve => { resumeTotals = resolve; });
+          }
+          return { data, error: null };
+        }
         if (fields === 'id,date,amount,category') {
           monthlyRequests.push({ start, end });
           if (failMonthly) return { error: { code: '42501' } };
@@ -121,7 +142,13 @@ async function boot({ rows = [], userRows = defaultUsers(), userReadError = fals
   });
   await settle();
   return {
-    nodes, charts, inserts, deletes, storage, feedRequests, monthlyRequests,
+    nodes, charts, inserts, deletes, storage, feedRequests, monthlyRequests, totalsRequests,
+    openTotals: () => nodes['open-totals'].listeners.click(),
+    closeTotals: () => nodes['close-totals'].listeners.click(),
+    applyTotals: () => nodes['totals-form'].listeners.submit({ preventDefault() {} }),
+    setTotalsError(value) { failTotals = value; },
+    pauseTotals() { pauseTotals = true; },
+    resumeTotals() { resumeTotals(); },
     switchUser(value) { nodes['active-user'].value = userRows.find(user => user.name === value)?.id || value; nodes['active-user'].listeners.change(); },
     remove(index = 0) { return nodes['expense-list'].children[index].children[1].children[1].listeners.click(); },
     setDeleteMode(mode) { deleteMode = mode; },
@@ -532,4 +559,98 @@ test('dashboard failure leaves the feed usable and can be recovered by refresh',
   app.setMonthlyError(false);
   await app.refresh();
   assert.doesNotMatch(app.nodes['monthly-summary'].textContent, /Could not refresh/);
+});
+
+test('totals modal defaults to selected user and local month-to-date with inclusive dates', async () => {
+  const app = await boot({ rows: [
+    { ...expense('2026-10-01', '0.10', 'Other'), user_id: 'id-Mitesh' },
+    { ...expense('2026-10-15', '0.20', 'Other'), user_id: 'id-Mitesh' },
+    { ...expense('2026-10-16', '100.00', 'Other'), user_id: 'id-Mitesh' },
+    { ...expense('2026-09-30', '100.00', 'Other'), user_id: 'id-Mitesh' },
+    { ...expense('2026-10-15', '200.00', 'Other'), user_id: 'id-Neha' },
+  ] });
+  await app.openTotals();
+  assert.equal(app.nodes['totals-dialog'].open, true);
+  assert.equal(app.nodes['totals-user'].value, 'id-Mitesh');
+  assert.equal(app.nodes['totals-from'].value, '2026-10-01');
+  assert.equal(app.nodes['totals-to'].value, '2026-10-15');
+  assert.equal(app.nodes['totals-amount'].textContent, '₹0.30');
+  assert.match(app.nodes['totals-status'].textContent, /2 expenses/);
+  assert.match(app.nodes['totals-period'].textContent, /Mitesh.*1 Oct 2026 to 15 Oct 2026/);
+  app.closeTotals();
+  assert.equal(app.nodes['totals-dialog'].open, false);
+});
+
+test('custom totals span months and include all pages and unattributed entries for Everyone', async () => {
+  const rows = manyExpenses(75).map(row => ({ ...row, user_id: 'id-Neha' }));
+  rows.push(expense('2026-09-30', '2.25', 'Other'), expense('2026-11-01', '1000.00', 'Other'));
+  const app = await boot({ rows });
+  await app.openTotals();
+  app.nodes['totals-user'].value = '';
+  app.nodes['totals-from'].value = '2026-09-30';
+  app.nodes['totals-to'].value = '2026-10-01';
+  await app.applyTotals();
+  assert.equal(app.nodes['totals-amount'].textContent, '₹77.25');
+  assert.match(app.nodes['totals-status'].textContent, /76 expenses/);
+  assert.equal(app.nodes['expense-list'].children.length, 50);
+  assert.ok(app.totalsRequests.some(request => request.start === 76));
+  app.nodes['totals-user'].value = 'id-Neha';
+  await app.nodes['totals-user'].listeners.change();
+  assert.equal(app.nodes['totals-amount'].textContent, '₹75.00');
+});
+
+test('invalid ranges avoid queries and empty ranges show zero', async () => {
+  const app = await boot();
+  await app.openTotals();
+  assert.equal(app.nodes['totals-amount'].textContent, '₹0.00');
+  assert.match(app.nodes['totals-status'].textContent, /No expenses found/);
+  const count = app.totalsRequests.length;
+  app.nodes['totals-from'].value = '2026-10-16';
+  await app.applyTotals();
+  assert.equal(app.totalsRequests.length, count);
+  assert.equal(app.nodes['totals-amount'].textContent, '—');
+  assert.match(app.nodes['totals-status'].textContent, /on or before/);
+  await app.nodes['reset-totals'].listeners.click();
+  assert.equal(app.nodes['totals-from'].value, '2026-10-01');
+  assert.equal(app.nodes['totals-amount'].textContent, '₹0.00');
+});
+
+test('failed totals clear previous amounts and can be retried', async () => {
+  const app = await boot();
+  await app.openTotals();
+  app.setTotalsError(true);
+  await app.applyTotals();
+  assert.equal(app.nodes['totals-amount'].textContent, '—');
+  assert.match(app.nodes['totals-status'].textContent, /Could not load total/);
+  assert.equal(app.nodes['totals-result'].attributes['aria-busy'], 'false');
+  app.setTotalsError(false);
+  await app.applyTotals();
+  assert.equal(app.nodes['totals-amount'].textContent, '₹0.00');
+});
+
+test('older in-flight totals cannot overwrite changed filters or a reopened modal', async () => {
+  const app = await boot({ rows: [{ ...expense('2026-10-01', '1.00', 'Other'), user_id: 'id-Mitesh' }] });
+  await app.openTotals();
+  app.pauseTotals();
+  const pending = app.applyTotals();
+  app.nodes['totals-user'].value = 'id-Neha';
+  await app.nodes['totals-user'].listeners.change();
+  app.resumeTotals();
+  await pending;
+  assert.equal(app.nodes['totals-amount'].textContent, '₹0.00');
+  app.closeTotals();
+  app.switchUser('Mitesh');
+  await app.openTotals();
+  assert.equal(app.nodes['totals-amount'].textContent, '₹1.00');
+});
+
+test('month-to-date on New Year uses local January boundaries', async () => {
+  const app = await boot({ date: '2027-01-01T00:01:00', rememberedUser: '', rows: [
+    expense('2026-12-31', '5.00', 'Other'), expense('2027-01-01', '2.00', 'Other'),
+    expense('2027-01-02', '3.00', 'Other'),
+  ] });
+  await app.openTotals();
+  assert.equal(app.nodes['totals-from'].value, '2027-01-01');
+  assert.equal(app.nodes['totals-to'].value, '2027-01-01');
+  assert.equal(app.nodes['totals-amount'].textContent, '₹2.00');
 });
