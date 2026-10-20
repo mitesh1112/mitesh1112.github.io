@@ -1,0 +1,5 @@
+project_id = "expense-tracker"
+
+[functions.log-expense]
+# This function authenticates X-Shortcut-Token itself. It does not accept anon saves.
+verify_jwt = false
