@@ -55,6 +55,27 @@
     <p id="user-help" class="-mt-4 mb-6 text-xs leading-5 text-slate-500">Choose your name before saving. This browser remembers your selection. Everyone shares the feed and dashboard; anyone with access can delete an expense.</p>
     <p id="user-status" role="status" class="mb-4 text-sm text-emerald-700"></p>
 
+    <section id="pending-expenses" aria-labelledby="pending-heading" class="mb-6 rounded-2xl border border-amber-200 bg-white p-5 shadow-sm sm:p-6">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 id="pending-heading" class="text-lg font-bold">Pending UPI payments</h2>
+          <p class="mt-1 text-xs text-slate-500">Review a payment to fill the form. It counts as spending only after you save.</p>
+        </div>
+        <button id="refresh-drafts" type="button" disabled class="rounded-lg border border-amber-200 px-3 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-50 disabled:opacity-50">Refresh pending</button>
+      </div>
+      <p id="draft-status" role="status" class="mt-3 text-sm text-slate-600">Choose your name to view pending payments.</p>
+      <ul id="draft-list" class="mt-2 divide-y divide-slate-100" aria-label="Pending UPI payments"></ul>
+      <details class="mt-4 border-t border-slate-100 pt-4">
+        <summary class="cursor-pointer text-sm font-semibold text-emerald-700">Prepare a draft from an SBI message</summary>
+        <form id="upi-message-form" class="mt-3 space-y-3" aria-describedby="upi-message-status">
+          <label for="upi-message" class="block text-sm text-slate-600">Paste one SBI UPI debit SMS</label>
+          <textarea id="upi-message" rows="3" maxlength="4000" required class="field" placeholder="Dear UPI user A/C X… debited by…"></textarea>
+          <button id="prepare-upi-draft" type="submit" disabled class="rounded-xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">Prepare draft</button>
+          <p id="upi-message-status" role="status" class="text-xs text-slate-600"></p>
+        </form>
+      </details>
+    </section>
+
     <div class="grid items-start gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
       <section aria-labelledby="entry-heading" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div class="mb-6 flex items-center gap-3">
@@ -65,6 +86,10 @@
           </div>
         </div>
         <form id="expense-form" class="space-y-5" aria-describedby="form-status">
+          <div id="draft-review" hidden class="rounded-xl border border-amber-200 bg-amber-50 p-3">
+            <p id="draft-review-info" class="break-words text-sm text-amber-950"></p>
+            <button id="cancel-draft-review" type="button" class="mt-2 rounded-lg px-2 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100">Leave review</button>
+          </div>
           <div>
             <label for="expense-date" class="mb-2 block text-sm font-semibold">Date <span class="text-emerald-700" aria-hidden="true">*</span></label>
             <input id="expense-date" name="date" type="date" class="field" required>

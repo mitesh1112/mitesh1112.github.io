@@ -1,5 +1,9 @@
 # Log expenses from Siri: simple setup
 
+For SBI message automation that prepares payments for review before Save, see
+[UPI_AUTOMATION_SETUP.md](./UPI_AUTOMATION_SETUP.md). Your existing Log Expense
+shortcut can continue to work unchanged.
+
 An Apple Shortcut can save through the same Supabase Data API the browser uses.
 Configure your user ID once. No personal tokens, extra database tables, Edge
 Function, or new migration is required. Internet access is required.
@@ -89,15 +93,44 @@ response does not have the earlier Edge Function's success or message fields.
 
 After **Get Contents of URL**, add:
 
-1. **Get Item from List**: first item of the response.
-2. **Get Dictionary Value**: key id from that first item.
-3. **If** the ID **has any value**: **Speak Text**: Expense saved.
-4. **Otherwise**: **Speak Text**: Could not confirm the save. Please check ExpenseTracker.
+1. **Set Variable**: name SaveResponse; input explicitly selected from **Contents of URL**.
+2. **Get Item from List**: first item of **SaveResponse**.
+3. **Get Dictionary Value**: key id from the **Item from List** result.
+4. **Set Variable**: name SavedExpenseID; input the preceding **Dictionary Value**.
+5. **If SavedExpenseID has any value**: **Speak Text**: Expense saved.
+6. **Otherwise**: **Speak Text**: Could not confirm the save. Please check ExpenseTracker.
+
+Explicitly select those inputs with the variable picker. Do not let the If action
+use Amount, Category, a menu result, or another earlier variable.
 
 An HTTP/network failure may stop the shortcut before those actions. Do not add an
 automatic retry: a response can be lost after the expense has saved. Check the app
 before logging an expense again if its outcome is uncertain. This simpler setup
 does not provide automatic duplicate prevention or per-device token revocation.
+
+### If the shortcut reaches Otherwise
+
+This only means the shortcut did not extract an ID. It does not establish whether
+the expense was saved. First check the app before sending the expense again.
+
+Temporarily insert **Show Result** immediately after **Set Variable SaveResponse**,
+with **SaveResponse** explicitly selected as its input. Keep the subsequent
+**Get Item from List** connected to SaveResponse, not the Show Result output.
+Run one test manually and inspect that raw response:
+
+- A JSON array containing a row with id: the API returned a saved row. Check the
+  input variables for Get Item from List, Get Dictionary Value, and If as above.
+- An error object containing code, message, details, or hint: use that exact error
+  to diagnose the request; do not assume the problem is the If action.
+- Empty output: confirm the header name is Prefer and its value is exactly
+  return=representation. Without this preference, a successful insert normally
+  returns no body. Check the app before retrying.
+
+Also confirm the URL ends in /rest/v1/expenses, rather than the earlier Edge
+Function address. An Edge Function response has a different shape.
+
+Share the raw response text when asking for help; user_id, notes, and amounts may
+be redacted. API keys and request headers are not needed for this diagnosis.
 
 ## 5. Test, then use Siri
 

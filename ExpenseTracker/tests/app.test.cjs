@@ -7,7 +7,7 @@ const source = fs.readFileSync(`${__dirname}/../app.js`, 'utf8');
 const settle = () => new Promise((resolve) => setImmediate(resolve));
 const defaultUsers = () => ['Mitesh', 'Neha', 'Brinda', 'Harshal'].map(name => ({ id: `id-${name}`, name }));
 
-async function boot({ rows = [], userRows = defaultUsers(), userReadError = false, chartAvailable = true, date = '2026-10-15T12:00:00', readError = false, rememberedUser = 'Mitesh', storage, blockedStorage = false } = {}) {
+async function boot({ rows = [], draftRows = [], draftReadError = false, userRows = defaultUsers(), userReadError = false, chartAvailable = true, date = '2026-10-15T12:00:00', readError = false, rememberedUser = 'Mitesh', storage, blockedStorage = false } = {}) {
   const nodes = {};
   const charts = [];
   const inserts = [];
@@ -27,6 +27,11 @@ async function boot({ rows = [], userRows = defaultUsers(), userReadError = fals
   let failUserRead = userReadError;
   let failInsert = false;
   let failAfterInsert = false;
+  let draftRpcMode = 'success';
+  let pauseDraftRead = false;
+  let resumeDraftRead;
+  const rpcCalls = [];
+  const documentEvents = {};
   class Element {
     constructor() {
       this.value = ''; this.children = []; this.disabled = true;
@@ -58,10 +63,10 @@ async function boot({ rows = [], userRows = defaultUsers(), userReadError = fals
     getElementById(id) { return nodes[id] ||= new Element(); },
     createElement() { return new Element(); },
     createDocumentFragment() { return new Element(); },
-    addEventListener() {},
+    addEventListener(name, callback) { documentEvents[name] = callback; },
   };
   const client = { from(table) {
-    assert.ok(['users', 'expenses'].includes(table));
+    assert.ok(['users', 'expenses', 'upi_drafts'].includes(table));
     let deleting = false;
     let deleteId;
     let fields;
@@ -92,6 +97,15 @@ async function boot({ rows = [], userRows = defaultUsers(), userReadError = fals
       lt(column, value) { filters.push(row => row[column] < value); return query; },
       lte(column, value) { filters.push(row => row[column] <= value); return query; },
       async range(start, end) {
+        if (table === 'upi_drafts') {
+          if (draftReadError) return { error: { code: 'PGRST205' } };
+          const data = draftRows.filter(row => filters.every(filter => filter(row))).slice(start, start + 2);
+          if (pauseDraftRead) {
+            pauseDraftRead = false;
+            await new Promise(resolve => { resumeDraftRead = resolve; });
+          }
+          return { data, error: null };
+        }
         if (table === 'users') {
           if (failUserRead) return { error: { code: 'PGRST205' } };
           return { data: userRows.slice(start, start + 2), error: null };
@@ -137,6 +151,31 @@ async function boot({ rows = [], userRows = defaultUsers(), userReadError = fals
       },
     };
     return query;
+  }, async rpc(name, params) {
+    rpcCalls.push({ name, params });
+    if (draftRpcMode === 'error') return { error: { code: 'PT409', message: 'Draft is no longer pending.' } };
+    if (name === 'queue_sbi_upi_message') {
+      return { data: { success: true, draft_id: 'queued', message: 'UPI draft ready.' }, error: null };
+    }
+    const draft = draftRows.find(row => row.id === params.p_draft_id);
+    if (!draft) return { error: { code: 'PT404', message: 'Missing draft.' } };
+    if (name === 'dismiss_upi_draft') {
+      draft.status = 'dismissed';
+      return { data: { success: true, draft_id: draft.id }, error: null };
+    }
+    assert.equal(name, 'save_upi_draft');
+    const duplicate = draft.status === 'saved';
+    if (!duplicate) {
+      draft.status = 'saved';
+      draft.saved_expense_id = `draft-expense-${draft.id}`;
+      rows.unshift({ id: draft.saved_expense_id, user_id: draft.user_id, date: params.p_date,
+        amount: params.p_amount, category: params.p_category, payment_method: params.p_payment_method,
+        note: params.p_note, created_at: '' });
+    }
+    if (draftRpcMode === 'lost') return { error: { code: 'NETWORK' } };
+    if (draftRpcMode === 'invalid') return { data: {} };
+    if (failAfterInsert) failRead = true;
+    return { data: { success: true, expense_id: draft.saved_expense_id, duplicate }, error: null };
   } };
   vm.runInNewContext(source, {
     document, Date: FixedDate, Intl,
@@ -152,7 +191,18 @@ async function boot({ rows = [], userRows = defaultUsers(), userReadError = fals
   });
   await settle();
   return {
-    nodes, charts, inserts, deletes, storage, feedRequests, monthlyRequests, totalsRequests,
+    nodes, charts, inserts, deletes, storage, feedRequests, monthlyRequests, totalsRequests, rpcCalls,
+    reviewDraft(index = 0) { return nodes['draft-list'].children[index].children[1].children[1].listeners.click(); },
+    dismissDraft(index = 0) { return nodes['draft-list'].children[index].children[1].children[2].listeners.click(); },
+    submitCurrentForm() { return nodes['expense-form'].listeners.submit({ preventDefault() {} }); },
+    refreshDrafts: () => nodes['refresh-drafts'].listeners.click(),
+    cancelReview: () => nodes['cancel-draft-review'].listeners.click(),
+    prepareDraft(message) { nodes['upi-message'].value = message; return nodes['upi-message-form'].listeners.submit({ preventDefault() {} }); },
+    setDraftRpcMode(value) { draftRpcMode = value; },
+    setDraftReadError(value) { draftReadError = value; },
+    pauseDrafts() { pauseDraftRead = true; },
+    resumeDrafts() { resumeDraftRead(); },
+    visibleAgain() { documentEvents.visibilitychange(); },
     openTotals: () => nodes['open-totals'].listeners.click(),
     closeTotals: () => nodes['close-totals'].listeners.click(),
     applyTotals: () => nodes['totals-form'].listeners.submit({ preventDefault() {} }),
@@ -184,6 +234,161 @@ async function boot({ rows = [], userRows = defaultUsers(), userReadError = fals
 }
 
 const expense = (date, amount, category, note = '') => ({ id: date + amount, date, amount, category, note, created_at: '' });
+const upiDraft = (id = 'upi-1', overrides = {}) => ({ id, user_id: 'id-Mitesh', status: 'pending',
+  date: '2026-10-21', amount: '56.00', recipient: 'M/S.SKY CHEMIST', transaction_ref: '210727313985',
+  suggested_category: 'Medicine', payment_method: 'UPI', note: 'M/S.SKY CHEMIST | UPI ref 210727313985',
+  created_at: '2026-10-21T15:37:00Z', ...overrides });
+
+test('UPI drafts page independently for the selected person and never count as spending before Save', async () => {
+  const draftRows = [upiDraft(), upiDraft('upi-2'), upiDraft('upi-3'), upiDraft('neha', { user_id: 'id-Neha' }),
+    upiDraft('resolved', { status: 'saved' })];
+  const app = await boot({ draftRows });
+  assert.equal(app.nodes['draft-list'].children.length, 3);
+  assert.equal(app.nodes['expense-list'].children.length, 0);
+  assert.equal(app.nodes['monthly-total'].textContent, '₹0.00');
+  app.reviewDraft();
+  assert.equal(app.nodes['expense-date'].value, '2026-10-21');
+  assert.equal(app.nodes['expense-amount'].value, '56.00');
+  assert.equal(app.nodes['expense-category'].value, 'Medicine');
+  assert.equal(app.nodes['expense-payment-method'].value, 'UPI');
+  assert.equal(app.nodes['expense-note'].value, draftRows[0].note);
+  assert.equal(app.nodes['active-user'].disabled, true);
+  assert.equal(app.rpcCalls.length, 0);
+  assert.equal(app.inserts.length, 0);
+});
+
+test('Save commits reviewed edits with a draft RPC, clears review, and refreshes the feed', async () => {
+  const rows = [];
+  const app = await boot({ rows, draftRows: [upiDraft()] });
+  app.reviewDraft();
+  app.nodes['expense-amount'].value = '57.00';
+  app.nodes['expense-category'].value = 'Other';
+  app.nodes['expense-note'].value = 'Changed after review';
+  await app.submitCurrentForm();
+  assert.equal(app.rpcCalls[0].name, 'save_upi_draft');
+  assert.equal(app.rpcCalls[0].params.p_amount, '57.00');
+  assert.equal(app.rpcCalls[0].params.p_category, 'Other');
+  assert.equal(app.rpcCalls[0].params.p_note, 'Changed after review');
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].user_id, 'id-Mitesh');
+  assert.equal(app.inserts.length, 0, 'must not use the ordinary insert path');
+  assert.equal(app.nodes['draft-list'].children.length, 0);
+  assert.equal(app.nodes['draft-review'].hidden, true);
+  assert.equal(app.nodes['expense-amount'].value, '');
+  assert.equal(app.nodes['active-user'].disabled, false);
+  assert.equal(app.nodes['expense-list'].children.length, 1);
+});
+
+test('unknown recipients require a category and leaving review does not save or dismiss', async () => {
+  const draftRows = [upiDraft('person', { suggested_category: '', recipient: 'Mr RAJESH MANEK' })];
+  const app = await boot({ draftRows });
+  app.reviewDraft();
+  assert.equal(app.nodes['expense-category'].value, '');
+  await app.submitCurrentForm();
+  assert.equal(app.rpcCalls.length, 0);
+  app.cancelReview();
+  assert.equal(draftRows[0].status, 'pending');
+  assert.equal(app.nodes['draft-list'].children.length, 1);
+  assert.equal(app.nodes['draft-review'].hidden, true);
+});
+
+test('failed draft save preserves edits and lost-response retry cannot duplicate a committed save', async () => {
+  const rows = [];
+  const app = await boot({ rows, draftRows: [upiDraft()] });
+  app.reviewDraft();
+  app.setDraftRpcMode('error');
+  await app.submitCurrentForm();
+  assert.equal(app.nodes['expense-amount'].value, '56.00');
+  assert.equal(rows.length, 0);
+  app.setDraftRpcMode('lost');
+  await app.submitCurrentForm();
+  assert.equal(rows.length, 1);
+  assert.equal(app.nodes['expense-amount'].value, '56.00');
+  assert.equal(app.nodes['draft-review'].hidden, false);
+  app.setDraftRpcMode('success');
+  await app.submitCurrentForm();
+  assert.equal(rows.length, 1);
+  assert.match(app.nodes['form-status'].textContent, /already saved/);
+  assert.equal(app.nodes['draft-review'].hidden, true);
+});
+
+test('dismiss requires confirmation, clears active review, and creates no expense', async () => {
+  const draftRows = [upiDraft()];
+  const app = await boot({ draftRows });
+  app.reviewDraft();
+  app.setConfirm(false);
+  await app.dismissDraft();
+  assert.equal(app.rpcCalls.length, 0);
+  app.setConfirm(true);
+  await app.dismissDraft();
+  assert.equal(draftRows[0].status, 'dismissed');
+  assert.equal(app.nodes['draft-list'].children.length, 0);
+  assert.equal(app.nodes['draft-review'].hidden, true);
+  assert.equal(app.inserts.length, 0);
+});
+
+test('review protects a manual form from accidental replacement', async () => {
+  const app = await boot({ draftRows: [upiDraft()] });
+  app.nodes['expense-amount'].value = '123';
+  app.setConfirm(false);
+  app.reviewDraft();
+  assert.equal(app.nodes['expense-amount'].value, '123');
+  app.setConfirm(true);
+  app.reviewDraft();
+  assert.equal(app.nodes['expense-amount'].value, '56.00');
+});
+
+test('missing UPI migration leaves ordinary saves available and pending refresh can recover', async () => {
+  const app = await boot({ draftRows: [upiDraft()], draftReadError: true });
+  assert.match(app.nodes['draft-status'].textContent, /07_upi_drafts.sql/);
+  await app.save();
+  assert.equal(app.inserts.length, 1);
+  app.setDraftReadError(false);
+  await app.refreshDrafts();
+  assert.equal(app.nodes['draft-list'].children.length, 1);
+});
+
+test('stale pending results cannot overwrite a newer user selection', async () => {
+  const app = await boot({ draftRows: [upiDraft(), upiDraft('n', { user_id: 'id-Neha', recipient: 'Neha payment' })] });
+  app.pauseDrafts();
+  const old = app.refreshDrafts();
+  app.switchUser('Neha');
+  await settle();
+  app.resumeDrafts();
+  await old;
+  assert.equal(app.nodes['draft-list'].children.length, 1);
+  assert.equal(app.nodes['draft-list'].children[0].children[0].children[0].textContent, 'Neha payment');
+});
+
+test('incoming draft is picked up when the browser becomes visible again', async () => {
+  const draftRows = [];
+  const app = await boot({ draftRows });
+  draftRows.push(upiDraft());
+  app.visibleAgain();
+  await settle();
+  assert.equal(app.nodes['draft-list'].children.length, 1);
+});
+
+test('pasting a message sends its exact text to the parser without inserting an expense', async () => {
+  const app = await boot();
+  const sms = 'Dear UPI user A/C X5901 debited by 56.00 on date 21Oct26 trf to M/S.SKY CHEMIST Refno 210727313985 If not u? call-1800111109 for other services-18001234-SBI';
+  await app.prepareDraft(sms);
+  assert.equal(app.rpcCalls[0].name, 'queue_sbi_upi_message');
+  assert.equal(app.rpcCalls[0].params.p_user_id, 'id-Mitesh');
+  assert.equal(app.rpcCalls[0].params.p_message, sms);
+  assert.equal(app.inserts.length, 0);
+  assert.equal(app.nodes['upi-message'].value, '');
+});
+
+test('a refresh failure after a confirmed draft save remains reported as saved', async () => {
+  const app = await boot({ draftRows: [upiDraft()] });
+  app.reviewDraft();
+  app.setRefreshErrorAfterInsert();
+  await app.submitCurrentForm();
+  assert.match(app.nodes['form-status'].textContent, /Expense saved, but/);
+  assert.equal(app.nodes['draft-review'].hidden, true);
+  assert.equal(app.nodes['expense-amount'].value, '');
+});
 
 test('each payment method is saved, displayed and searchable, then cleared for the next entry', async () => {
   for (const method of ['UPI', 'Cash', 'Credit Card', 'Net Banking']) {

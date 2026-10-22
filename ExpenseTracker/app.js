@@ -69,6 +69,22 @@
   let hasLoaded = false;
   let lastLoadError = '';
   let categoryChart;
+  const draftList = byId('draft-list');
+  const draftStatus = byId('draft-status');
+  const refreshDrafts = byId('refresh-drafts');
+  const draftReview = byId('draft-review');
+  const draftReviewInfo = byId('draft-review-info');
+  const cancelDraftReview = byId('cancel-draft-review');
+  const upiMessageForm = byId('upi-message-form');
+  const upiMessage = byId('upi-message');
+  const prepareDraft = byId('prepare-upi-draft');
+  const upiMessageStatus = byId('upi-message-status');
+  let drafts = [];
+  let reviewingDraft = null;
+  let draftRequest = 0;
+  let draftsLoading = false;
+  let draftMutation = false;
+  let draftButtons = [];
 
   function today() {
     const now = new Date();
@@ -97,6 +113,13 @@
     loadMore.disabled = !client || saving || loading || deletingId !== null;
     loadMore.textContent = loading ? 'Loading…' : 'Load more';
     activeUser.disabled = !usersReady || !users.length || saving || loading || deletingId !== null;
+    activeUser.disabled ||= Boolean(reviewingDraft) || draftMutation;
+    refreshDrafts.disabled = !client || !selectedUser || draftsLoading || draftMutation || saving;
+    prepareDraft.disabled = !client || !selectedUser || draftMutation || saving;
+    upiMessage.disabled = draftMutation;
+    cancelDraftReview.disabled = saving || draftMutation;
+    for (const button of draftButtons) button.disabled = saving || loading || draftMutation || deletingId !== null;
+    submit.disabled ||= draftMutation;
     for (const button of deleteButtons) button.disabled = !client || saving || loading || deletingId !== null;
     search.disabled = !hasLoaded;
     [dateInput, amountInput, categoryInput, paymentMethodInput, noteInput].forEach((input) => {
@@ -105,6 +128,146 @@
     submit.textContent = saving ? 'Saving…' : 'Save expense';
     form.setAttribute('aria-busy', String(saving));
     list.setAttribute('aria-busy', String(loading));
+  }
+
+  function draftError(error) {
+    if (['PGRST205', '42P01', 'PGRST202', '42883'].includes(error?.code)) {
+      return 'Apply supabase/07_upi_drafts.sql in the Supabase SQL Editor, then refresh pending payments.';
+    }
+    if (/^PT(404|409|422)$/.test(error?.code)) return error.message;
+    return errorMessage(error);
+  }
+
+  function renderDrafts() {
+    const fragment = document.createDocumentFragment();
+    draftButtons = [];
+    for (const draft of drafts.filter(row => row.user_id === selectedUser)) {
+      const row = element('li', 'flex flex-col gap-3 py-4 sm:flex-row sm:items-start sm:justify-between');
+      const details = element('div', 'min-w-0 flex-1');
+      details.append(element('p', 'break-words text-sm font-semibold', draft.recipient));
+      details.append(element('p', 'mt-1 text-xs text-slate-500', `${draft.date} · UPI · Ref ${draft.transaction_ref}`));
+      if (draft.suggested_category) details.append(element('p', 'mt-1 text-xs text-emerald-700', `Suggested: ${draft.suggested_category}`));
+      const actions = element('div', 'flex shrink-0 flex-wrap items-center gap-2');
+      const review = element('button', 'rounded-lg bg-emerald-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50', 'Review');
+      review.type = 'button';
+      review.addEventListener('click', () => reviewUpiDraft(draft));
+      review.setAttribute('aria-label', `Review ${money.format(Number(draft.amount))} payment to ${draft.recipient}`);
+      const dismiss = element('button', 'rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50', 'Dismiss');
+      dismiss.type = 'button';
+      dismiss.addEventListener('click', () => dismissUpiDraft(draft));
+      dismiss.setAttribute('aria-label', `Dismiss payment to ${draft.recipient}`);
+      draftButtons.push(review, dismiss);
+      actions.append(element('span', 'text-sm font-bold tabular-nums', money.format(Number(draft.amount))), review, dismiss);
+      row.append(details, actions);
+      fragment.append(row);
+    }
+    draftList.replaceChildren(fragment);
+    syncControls();
+  }
+
+  async function loadDrafts() {
+    const request = ++draftRequest;
+    const userId = selectedUser;
+    renderDrafts();
+    if (!client || !usersReady || !userId) {
+      draftsLoading = false;
+      message(draftStatus, 'Choose your name to view pending payments.');
+      syncControls();
+      return;
+    }
+    draftsLoading = true;
+    syncControls();
+    message(draftStatus, 'Loading pending payments…');
+    try {
+      const rows = [];
+      let offset = 0;
+      while (true) {
+        const { data, error } = await client.from('upi_drafts')
+          .select('id,user_id,date,amount,recipient,transaction_ref,suggested_category,payment_method,note,created_at')
+          .eq('status', 'pending').eq('user_id', userId)
+          .order('created_at', { ascending: false }).order('id', { ascending: false })
+          .range(offset, offset + 499);
+        if (request !== draftRequest) return;
+        if (error) throw error;
+        if (!data.length) break;
+        rows.push(...data);
+        offset += data.length;
+      }
+      drafts = rows;
+      renderDrafts();
+      message(draftStatus, rows.length ? `${rows.length} payment${rows.length === 1 ? '' : 's'} waiting for review.` : 'No pending UPI payments.');
+    } catch (error) {
+      if (request !== draftRequest) return;
+      message(draftStatus, `Could not refresh pending payments. ${draftError(error)} Any displayed payments are from the previous successful refresh.`, true);
+    } finally {
+      if (request === draftRequest) { draftsLoading = false; syncControls(); }
+    }
+  }
+
+  function leaveDraftReview() {
+    reviewingDraft = null;
+    draftReview.hidden = true;
+    form.reset();
+    dateInput.value = today();
+    message(formStatus, 'The payment remains pending. You can review it again later.');
+    syncControls();
+  }
+
+  function reviewUpiDraft(draft) {
+    if (saving || loading || draftMutation || deletingId !== null || draft.user_id !== selectedUser) return;
+    if (reviewingDraft?.id === draft.id) return;
+    if ((reviewingDraft || amountInput.value || categoryInput.value || paymentMethodInput.value || noteInput.value || dateInput.value !== today()) &&
+        !window.confirm('Replace the current form entries with this UPI payment? Any pending payment remains available for review.')) return;
+    reviewingDraft = draft;
+    dateInput.value = draft.date;
+    amountInput.value = String(draft.amount);
+    categoryInput.value = draft.suggested_category || '';
+    paymentMethodInput.value = 'UPI';
+    noteInput.value = draft.note;
+    draftReviewInfo.textContent = `Reviewing ${draft.recipient} · Ref ${draft.transaction_ref}. Saving as ${users.find(user => user.id === draft.user_id)?.name}.`;
+    draftReview.hidden = false;
+    message(formStatus, draft.suggested_category ? 'Review the suggested category and payment details, then save.' : 'Choose a category, review the payment details, then save.');
+    syncControls();
+    form.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    categoryInput.focus();
+  }
+
+  async function dismissUpiDraft(draft) {
+    if (saving || loading || draftMutation || deletingId !== null) return;
+    if (!window.confirm(`Dismiss the ${money.format(Number(draft.amount))} payment to ${draft.recipient}? It will not be added to expenses.`)) return;
+    draftMutation = true;
+    syncControls();
+    try {
+      const { data, error } = await client.rpc('dismiss_upi_draft', { p_draft_id: draft.id });
+      if (error) throw error;
+      if (!data?.success || data.draft_id !== draft.id) throw new Error('Unconfirmed dismissal');
+      ++draftRequest;
+      draftsLoading = false;
+      drafts = drafts.filter(row => row.id !== draft.id);
+      if (reviewingDraft?.id === draft.id) leaveDraftReview();
+      renderDrafts();
+      message(draftStatus, 'Payment dismissed. No expense was created.');
+    } catch (error) {
+      message(draftStatus, `Dismissal could not be confirmed. ${draftError(error)} Refresh pending payments before retrying.`, true);
+    } finally { draftMutation = false; syncControls(); }
+  }
+
+  async function prepareUpiDraft(event) {
+    event.preventDefault();
+    if (!client || !selectedUser || draftMutation || saving || !upiMessageForm.reportValidity()) return;
+    draftMutation = true;
+    syncControls();
+    message(upiMessageStatus, 'Preparing payment for review…');
+    try {
+      const { data, error } = await client.rpc('queue_sbi_upi_message', { p_user_id: selectedUser, p_message: upiMessage.value });
+      if (error) throw error;
+      if (!data?.success || !data.draft_id) throw new Error('Unconfirmed draft');
+      upiMessage.value = '';
+      message(upiMessageStatus, data.message);
+      await loadDrafts();
+    } catch (error) {
+      message(upiMessageStatus, `Could not confirm a draft. ${draftError(error)} The message is preserved; retrying the same SMS will not create a second draft.`, true);
+    } finally { draftMutation = false; syncControls(); }
   }
 
   function element(tag, className, text) {
@@ -159,6 +322,7 @@
       if (!users.length) message(userStatus, 'No users available. Add a user in Supabase’s users table, then use Refresh expenses.');
     } catch (error) {
       selectedUser = '';
+      loadDrafts();
       const fragment = document.createDocumentFragment();
       const option = element('option', '', 'Users unavailable');
       option.value = '';
@@ -472,7 +636,7 @@
 
   async function saveExpense(event) {
     event.preventDefault();
-    if (!client || saving || loading || deletingId !== null) return;
+    if (!client || saving || loading || draftMutation || deletingId !== null) return;
     if (!usersReady || !users.some((user) => user.id === selectedUser)) {
       message(formStatus, 'Choose your name at the top of the page before saving.', true);
       activeUser.focus();
@@ -496,14 +660,37 @@
       message(formStatus, 'Choose a category and enter an amount greater than zero.', true);
       return;
     }
+    const draft = reviewingDraft;
+    if (draft && draft.user_id !== selectedUser) {
+      message(formStatus, 'This draft belongs to another person. Leave review and select the correct name.', true);
+      return;
+    }
     saving = true;
     syncControls();
     message(formStatus, 'Saving expense…');
+    let alreadySaved = false;
     try {
-      const { error } = await client.from('expenses').insert(payload);
-      if (error) throw error;
+      if (draft) {
+        const { data, error } = await client.rpc('save_upi_draft', { p_draft_id: draft.id,
+          p_date: payload.date, p_amount: payload.amount, p_category: payload.category,
+          p_payment_method: payload.payment_method, p_note: payload.note });
+        if (error) throw error;
+        if (data?.success !== true || !data.expense_id) throw new Error('Unconfirmed save');
+        alreadySaved = data.duplicate === true;
+        ++draftRequest;
+        draftsLoading = false;
+        drafts = drafts.filter(row => row.id !== draft.id);
+        reviewingDraft = null;
+        draftReview.hidden = true;
+        renderDrafts();
+      } else {
+        const { error } = await client.from('expenses').insert(payload);
+        if (error) throw error;
+      }
     } catch (error) {
-      message(formStatus, `Save could not be confirmed. ${errorMessage(error)} Your entries are preserved. Refresh the feed before retrying to avoid a duplicate.`, true);
+      message(formStatus, draft
+        ? `Save could not be confirmed. ${draftError(error)} Your entries are preserved. Retrying this draft will not create a second expense.`
+        : `Save could not be confirmed. ${errorMessage(error)} Your entries are preserved. Refresh the feed before retrying to avoid a duplicate.`, true);
       saving = false;
       syncControls();
       return;
@@ -511,7 +698,7 @@
 
     form.reset();
     dateInput.value = today();
-    message(formStatus, 'Expense saved.');
+    message(formStatus, alreadySaved ? 'This payment was already saved. No duplicate expense was added.' : 'Expense saved.');
     // A refresh failure must not be reported as a failed insert.
     const refreshed = await loadExpenses();
     if (!refreshed) message(formStatus, 'Expense saved, but the feed could not refresh. Use Refresh expenses; do not submit it again.', true);
@@ -567,8 +754,14 @@
       ? `Adding new expenses as ${person.name}.${remembered ? '' : ' Browser storage is unavailable; choose your name again next visit.'}`
       : 'Choose your name to start adding expenses.');
     syncControls();
+    loadDrafts();
   }
 
+  refreshDrafts.addEventListener('click', loadDrafts);
+  upiMessageForm.addEventListener('submit', prepareUpiDraft);
+  cancelDraftReview.addEventListener('click', () => {
+    if (!saving && !draftMutation) leaveDraftReview();
+  });
   activeUser.addEventListener('change', switchUser);
   openTotals.addEventListener('click', showTotals);
   byId('close-totals').addEventListener('click', () => totalsDialog.close());
@@ -592,6 +785,7 @@
   loadMore.addEventListener('click', () => loadExpenses(true));
   search.addEventListener('input', renderExpenses);
   document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && client && usersReady && !draftMutation && !saving) loadDrafts();
     if (!document.hidden && hasLoaded && !loading && dashboardMonth !== today().slice(0, 7)) loadMonthlyExpenses();
   });
 
