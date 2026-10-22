@@ -70,6 +70,9 @@
   let lastLoadError = '';
   let categoryChart;
   const draftList = byId('draft-list');
+  const pendingDialog = byId('pending-expenses');
+  const openPending = byId('open-pending');
+  const pendingCount = byId('pending-count');
   const draftStatus = byId('draft-status');
   const refreshDrafts = byId('refresh-drafts');
   const draftReview = byId('draft-review');
@@ -115,6 +118,7 @@
     activeUser.disabled = !usersReady || !users.length || saving || loading || deletingId !== null;
     activeUser.disabled ||= Boolean(reviewingDraft) || draftMutation;
     refreshDrafts.disabled = !client || !selectedUser || draftsLoading || draftMutation || saving;
+    openPending.disabled = !client || !usersReady || !selectedUser || saving || draftMutation;
     prepareDraft.disabled = !client || !selectedUser || draftMutation || saving;
     upiMessage.disabled = draftMutation;
     cancelDraftReview.disabled = saving || draftMutation;
@@ -141,7 +145,10 @@
   function renderDrafts() {
     const fragment = document.createDocumentFragment();
     draftButtons = [];
-    for (const draft of drafts.filter(row => row.user_id === selectedUser)) {
+    const pending = drafts.filter(row => row.user_id === selectedUser);
+    pendingCount.textContent = String(pending.length);
+    openPending.setAttribute('aria-label', `Pending payments, ${pending.length} waiting for review`);
+    for (const draft of pending) {
       const row = element('li', 'flex flex-col gap-3 py-4 sm:flex-row sm:items-start sm:justify-between');
       const details = element('div', 'min-w-0 flex-1');
       details.append(element('p', 'break-words text-sm font-semibold', draft.recipient));
@@ -227,6 +234,7 @@
     draftReviewInfo.textContent = `Reviewing ${draft.recipient} · Ref ${draft.transaction_ref}. Saving as ${users.find(user => user.id === draft.user_id)?.name}.`;
     draftReview.hidden = false;
     message(formStatus, draft.suggested_category ? 'Review the suggested category and payment details, then save.' : 'Choose a category, review the payment details, then save.');
+    if (pendingDialog.open) pendingDialog.close();
     syncControls();
     form.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     categoryInput.focus();
@@ -757,6 +765,16 @@
     loadDrafts();
   }
 
+  openPending.addEventListener('click', () => {
+    if (openPending.disabled) return;
+    pendingDialog.showModal();
+    return loadDrafts();
+  });
+  byId('close-pending').addEventListener('click', () => pendingDialog.close());
+  pendingDialog.addEventListener('close', () => {
+    if (reviewingDraft) categoryInput.focus();
+    else openPending.focus();
+  });
   refreshDrafts.addEventListener('click', loadDrafts);
   upiMessageForm.addEventListener('submit', prepareUpiDraft);
   cancelDraftReview.addEventListener('click', () => {

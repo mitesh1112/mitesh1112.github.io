@@ -25,7 +25,10 @@ process. This repository change does not itself apply SQL or publish the site.
 
 ## 2. Check a draft in the app first
 
-Open the updated tracker and select Mitesh. You should see **Pending UPI payments**.
+Open the updated tracker and select Mitesh. Tap **Pending payments** in the header;
+the badge shows how many payments are waiting. The **Pending UPI payments** dialog
+opens without moving the manual expense form down the page. Close it with **Close**
+or Escape. Selecting **Review** closes the dialog and fills the expense form.
 Expand **Prepare a draft from an SBI message**, paste one complete message, and
 press **Prepare draft**. This does not save an expense.
 
@@ -138,8 +141,9 @@ actual iPhone before relying on it.
 - **Offline or automation/network failure:** the message remains in Messages, but
   no background retry is guaranteed. Open the tracker later and paste that SMS to
   prepare the draft. The same SMS can safely be submitted again.
-- **No draft appears:** select the user configured in the shortcut and press
-  **Refresh pending**. Returning to the browser also refreshes the queue.
+- **No draft appears:** select the user configured in the shortcut, tap
+  **Pending payments**, then **Refresh pending**. Returning to the browser also
+  refreshes the queue and the button's count.
 - **Unsupported message:** this version accepts only a single complete SBI UPI
   debit alert with a numeric amount, DDMonYY date, recipient, and numeric Refno.
   Credits, OTPs, failure alerts, invalid dates, and multiple pasted SMSes are rejected.

@@ -19,7 +19,7 @@
     .field:focus { border-color: #059669; }
     .field::placeholder { color: #64748b; }
     dialog::backdrop { background: rgb(15 23 42 / 55%); }
-    #totals-dialog { width: min(36rem, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); overflow-y: auto; }
+    #totals-dialog, #pending-expenses { width: min(36rem, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); overflow-y: auto; }
   </style>
 </head>
 <body class="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased">
@@ -32,11 +32,16 @@
         <p class="font-bold tracking-tight">Expense Tracker</p>
         <p class="text-xs text-slate-500">A little clarity, every day.</p>
       </div>
-      <div class="ml-auto w-full sm:w-52">
-        <label for="active-user" class="mb-1 block text-xs font-semibold text-slate-600">Adding expenses as</label>
-        <select id="active-user" class="field text-sm" aria-describedby="user-help" disabled>
-          <option value="">Loading users…</option>
-        </select>
+      <div class="ml-auto flex w-full items-end gap-3 sm:w-auto">
+        <button id="open-pending" type="button" disabled aria-haspopup="dialog" aria-controls="pending-expenses" class="inline-flex shrink-0 items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-xs font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-50">
+          Pending payments <span id="pending-count" class="rounded-full bg-amber-200 px-2 py-0.5 tabular-nums">0</span>
+        </button>
+        <div class="min-w-0 flex-1 sm:w-52">
+          <label for="active-user" class="mb-1 block text-xs font-semibold text-slate-600">Adding expenses as</label>
+          <select id="active-user" class="field text-sm" aria-describedby="user-help" disabled>
+            <option value="">Loading users…</option>
+          </select>
+        </div>
       </div>
     </div>
   </header>
@@ -55,26 +60,6 @@
     <p id="user-help" class="-mt-4 mb-6 text-xs leading-5 text-slate-500">Choose your name before saving. This browser remembers your selection. Everyone shares the feed and dashboard; anyone with access can delete an expense.</p>
     <p id="user-status" role="status" class="mb-4 text-sm text-emerald-700"></p>
 
-    <section id="pending-expenses" aria-labelledby="pending-heading" class="mb-6 rounded-2xl border border-amber-200 bg-white p-5 shadow-sm sm:p-6">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 id="pending-heading" class="text-lg font-bold">Pending UPI payments</h2>
-          <p class="mt-1 text-xs text-slate-500">Review a payment to fill the form. It counts as spending only after you save.</p>
-        </div>
-        <button id="refresh-drafts" type="button" disabled class="rounded-lg border border-amber-200 px-3 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-50 disabled:opacity-50">Refresh pending</button>
-      </div>
-      <p id="draft-status" role="status" class="mt-3 text-sm text-slate-600">Choose your name to view pending payments.</p>
-      <ul id="draft-list" class="mt-2 divide-y divide-slate-100" aria-label="Pending UPI payments"></ul>
-      <details class="mt-4 border-t border-slate-100 pt-4">
-        <summary class="cursor-pointer text-sm font-semibold text-emerald-700">Prepare a draft from an SBI message</summary>
-        <form id="upi-message-form" class="mt-3 space-y-3" aria-describedby="upi-message-status">
-          <label for="upi-message" class="block text-sm text-slate-600">Paste one SBI UPI debit SMS</label>
-          <textarea id="upi-message" rows="3" maxlength="4000" required class="field" placeholder="Dear UPI user A/C X… debited by…"></textarea>
-          <button id="prepare-upi-draft" type="submit" disabled class="rounded-xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">Prepare draft</button>
-          <p id="upi-message-status" role="status" class="text-xs text-slate-600"></p>
-        </form>
-      </details>
-    </section>
 
     <div class="grid items-start gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
       <section aria-labelledby="entry-heading" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -207,6 +192,29 @@
     <footer class="mt-10 border-t border-slate-200 pt-5 text-center text-xs text-slate-500">A simple space to keep your spending in perspective.</footer>
   </main>
   <noscript><p class="mx-auto max-w-6xl px-5 pb-6 text-sm text-amber-900">JavaScript must be enabled to save and view expenses when the app is connected.</p></noscript>
+  <dialog id="pending-expenses" aria-labelledby="pending-heading" aria-describedby="pending-help" class="rounded-2xl border border-amber-200 bg-white p-5 text-slate-900 shadow-xl sm:p-6">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h2 id="pending-heading" class="text-lg font-bold">Pending UPI payments</h2>
+        <p id="pending-help" class="mt-1 text-xs text-slate-500">Review a payment to fill the form. It counts as spending only after you save.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="refresh-drafts" type="button" disabled class="rounded-lg border border-amber-200 px-3 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-50 disabled:opacity-50">Refresh pending</button>
+        <button id="close-pending" type="button" autofocus class="rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100">Close</button>
+      </div>
+    </div>
+    <p id="draft-status" role="status" class="mt-3 text-sm text-slate-600">Choose your name to view pending payments.</p>
+    <ul id="draft-list" class="mt-2 divide-y divide-slate-100" aria-label="Pending UPI payments"></ul>
+    <details class="mt-4 border-t border-slate-100 pt-4">
+      <summary class="cursor-pointer text-sm font-semibold text-emerald-700">Prepare a draft from an SBI message</summary>
+      <form id="upi-message-form" class="mt-3 space-y-3" aria-describedby="upi-message-status">
+        <label for="upi-message" class="block text-sm text-slate-600">Paste one SBI UPI debit SMS</label>
+        <textarea id="upi-message" rows="3" maxlength="4000" required class="field" placeholder="Dear UPI user A/C X… debited by…"></textarea>
+        <button id="prepare-upi-draft" type="submit" disabled class="rounded-xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">Prepare draft</button>
+        <p id="upi-message-status" role="status" class="text-xs text-slate-600"></p>
+      </form>
+    </details>
+  </dialog>
   <dialog id="totals-dialog" aria-labelledby="totals-heading" aria-describedby="totals-help" class="rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-xl">
     <div class="mb-3 flex items-center justify-between gap-4">
       <h2 id="totals-heading" class="text-xl font-bold">Expense totals</h2>

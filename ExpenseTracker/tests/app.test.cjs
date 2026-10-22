@@ -257,6 +257,25 @@ test('UPI drafts page independently for the selected person and never count as s
   assert.equal(app.inserts.length, 0);
 });
 
+test('pending payments open on demand, preserve manual inputs on close, and close when reviewing', async () => {
+  const app = await boot({ draftRows: [upiDraft()] });
+  const dialog = app.nodes['pending-expenses'];
+  assert.equal(Boolean(dialog.open), false);
+  assert.equal(app.nodes['pending-count'].textContent, '1');
+  app.nodes['expense-amount'].value = '12.00';
+  await app.nodes['open-pending'].listeners.click();
+  assert.equal(dialog.open, true);
+  app.nodes['close-pending'].listeners.click();
+  assert.equal(dialog.open, false);
+  assert.equal(app.nodes['expense-amount'].value, '12.00');
+  await app.nodes['open-pending'].listeners.click();
+  app.reviewDraft();
+  assert.equal(dialog.open, false);
+  assert.equal(app.nodes['expense-amount'].value, '56.00');
+  await app.submitCurrentForm();
+  assert.equal(app.nodes['pending-count'].textContent, '0');
+});
+
 test('Save commits reviewed edits with a draft RPC, clears review, and refreshes the feed', async () => {
   const rows = [];
   const app = await boot({ rows, draftRows: [upiDraft()] });
